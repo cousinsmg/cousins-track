@@ -760,6 +760,7 @@
     selected.clear(); save(); renderMain();
   }
   function setArchived(b,g,t,archive){ if(!!t.archived===archive) return; t.archived=archive; logActivity(t, archive?"Archived":"Unarchived"); save(); renderBody(); }
+  function accentCell(){ const a=document.createElement("div"); a.className="grp-accent"; return a; }
 
   function taskRow(b,g,t,editable){
     const row=document.createElement("div"); row.className="row"+(t.archived?" archived":""); row.appendChild(accentCell());
