@@ -24,8 +24,8 @@
      Find these in Supabase: Project Settings → API.
      ============================================================ */
   window.CONFIG = {
-    SUPABASE_URL: "https://rsisyznzqosgqgdbjqwl.supabase.co",
-    SUPABASE_PUBLISHABLE_KEY: "sb_publishable_pZldNPTKMoZHQBEcTv6jgA_au8TCQI6"
+    SUPABASE_URL: "https://YOUR-PROJECT-ref.supabase.co",
+    SUPABASE_PUBLISHABLE_KEY: "sb_publishable_XXXXXXXXXXXXXXXXXXXX"
   };
 </script>
 <style>
@@ -172,6 +172,9 @@
   .modal.wide{max-width:600px;}
   .modal-head{padding:20px 22px 14px;border-bottom:1px solid var(--border);}
   .modal-head h3{margin:0;font-family:var(--display);font-size:18px;font-weight:700;}
+  .td-title{border:none;background:none;font-family:var(--display);font-size:19px;font-weight:700;color:var(--ink);width:100%;padding:3px 5px;margin:-3px -5px 2px;border-radius:7px;outline:none;}
+  .td-title:focus{background:var(--canvas);box-shadow:0 0 0 2px var(--accent-soft);}
+  .td-title[readonly]{cursor:default;}
   .modal-head p{margin:5px 0 0;color:var(--ink-soft);font-size:13px;}
   .modal-body{padding:14px 22px;max-height:54vh;overflow-y:auto;}
   .modal-foot{padding:14px 22px 20px;display:flex;gap:10px;justify-content:flex-end;align-items:center;}
@@ -699,10 +702,10 @@
 
         if(editable){
           const at=document.createElement("button"); at.className="add-task"; at.innerHTML=`＋ Add task`;
-          at.onclick=()=>{ const nt={id:uid("t"),name:"New task",values:{},comments:[],attachments:[],activity:[],recurrence:null};
+          at.onclick=()=>{ const nt={id:uid("t"),name:"",values:{},comments:[],attachments:[],activity:[],recurrence:null};
             b.columns.forEach(c=>{ nt.values[c.id]=c.type==="people"?[]:(c.type==="status"?notStartedStatusId(b):""); });
             logActivity(nt,"Task created");
-            g.tasks.push(nt); save(); renderBody(); openTask(b,g,nt); };
+            g.tasks.push(nt); save(); renderBody(); openTask(b,g,nt,true); };
           table.appendChild(at);
         }
         wrap.appendChild(table);
@@ -727,7 +730,7 @@
       const statusCol=b.columns.find(c=>c.type==="status"); if(!statusCol||!doneStatus) return;
       const target=isDone?(b.statuses.find(s=>/not started/i.test(s.label))||b.statuses[b.statuses.length-1]).id:doneStatus.id;
       setStatus(b,g,t,target); save(); renderBody(); };
-    const nameInput=document.createElement("input"); nameInput.className="task-name"; nameInput.value=t.name; nameInput.spellcheck=false; nameInput.readOnly=!editable;
+    const nameInput=document.createElement("input"); nameInput.className="task-name"; nameInput.value=t.name; nameInput.placeholder="Untitled task"; nameInput.spellcheck=false; nameInput.readOnly=!editable;
     if(editable) nameInput.onchange=()=>{ const old=t.name; t.name=nameInput.value; if(old!==t.name) logActivity(t,`Renamed from “${old}” to “${t.name}”`); save(); };
     nameCell.appendChild(check); nameCell.appendChild(nameInput);
 
@@ -986,10 +989,21 @@
   }
 
   /* ---------- TASK DETAIL (comments, attachments, recurrence, activity) ---------- */
-  function openTask(b,g,t){
+  function openTask(b,g,t,focusName){
     const editable=canEdit(b);
-    const {body}=modal(h=>h.innerHTML=`<h3 style="margin-bottom:2px">${escapeHtml(t.name)}</h3><p>${escapeHtml(b.name)} · ${escapeHtml(g.name)}</p>`,{wide:true,doneLabel:"Close"});
+    const head=modal(h=>h.innerHTML=`
+        <input id="tdName" class="td-title" value="${escapeAttr(t.name)}" placeholder="Task name" spellcheck="false" ${editable?"":"readonly"}>
+        <p>${escapeHtml(b.name)} · ${escapeHtml(g.name)}</p>`,{wide:true,doneLabel:"Close"});
+    const body=head.body;
     body.style.padding="0";
+
+    // editable title
+    const nameEl=document.getElementById("tdName");
+    if(editable){
+      nameEl.onchange=()=>{ const old=t.name; t.name=nameEl.value.trim()||"Untitled task"; nameEl.value=t.name; if(old!==t.name) logActivity(t,`Renamed from “${old}” to “${t.name}”`); save(); renderBody(); };
+      nameEl.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); nameEl.blur(); } });
+      if(focusName){ setTimeout(()=>{ nameEl.focus(); nameEl.select(); }, 30); }
+    }
 
     // tab strip
     const tabs=document.createElement("div"); tabs.className="td-tabs";
