@@ -7,6 +7,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#5b5bd6">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Tracker">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   /* ============================================================
@@ -222,6 +230,10 @@
   .login-brand .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#8a8aff);display:grid;grid-template-columns:repeat(2,1fr);gap:3px;padding:7px;}
   .login-brand .mark span{background:rgba(255,255,255,.92);border-radius:2px;}
   .login-sub{color:var(--ink-soft);font-size:13.5px;line-height:1.5;margin:0 0 22px;}
+  .google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);font-size:14px;font-weight:600;color:var(--ink);}
+  .google-btn:hover{background:var(--canvas);border-color:var(--ink-soft);}
+  .login-or{display:flex;align-items:center;gap:12px;color:var(--ink-soft);font-size:12px;margin:16px 0;}
+  .login-or::before,.login-or::after{content:"";flex:1;height:1px;background:var(--border);}
   .login-input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:15px;outline:none;margin-bottom:10px;}
   .login-input:focus{border-color:var(--accent);}
   .login-btn{width:100%;justify-content:center;padding:12px;font-size:14px;}
@@ -338,7 +350,12 @@
   <div id="loginScreen" class="login-screen">
     <div class="login-card">
       <div class="login-brand"><div class="mark"><span></span><span></span><span></span><span></span></div><h1>Cousins Track</h1></div>
-      <p class="login-sub">Sign in with your email. We'll send you a secure magic link — no password to remember.</p>
+      <p class="login-sub">Sign in to Cousins Track. Use your Google account, or get a one-time magic link by email.</p>
+      <button class="google-btn" id="googleBtn">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4.5 24 4.5 16.3 4.5 9.7 8.9 6.3 14.7z"/><path fill="#4CAF50" d="M24 43.5c5.4 0 10.3-2.1 14-5.4l-6.5-5.5c-2 1.5-4.6 2.4-7.5 2.4-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.6 39 16.2 43.5 24 43.5z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.5l6.5 5.5c-.5.4 7-5.1 7-15 0-1.2-.1-2.3-.4-3.5z"/></svg>
+        Continue with Google
+      </button>
+      <div class="login-or"><span>or</span></div>
       <div id="loginForm">
         <input type="email" id="loginEmail" class="login-input" placeholder="you@theadvgroup.com" autocomplete="email">
         <button class="btn btn-primary login-btn" id="loginBtn">Send magic link</button>
@@ -387,8 +404,11 @@
   // Board structure (groups/columns/statuses/tasks) is stored in boards.data (JSONB).
   // Membership (people + roles) is stored in board_members and kept out of `data`.
   function serializeBoard(b){ const c={...b}; delete c.people; return c; }
+  let recentRevs=[]; // revisions we wrote, so realtime can skip our own echoes
   async function pushBoard(b){
     if(!sb||!b) return;
+    b.__rev = uid("rev");
+    recentRevs.push(b.__rev); if(recentRevs.length>10) recentRevs.shift();
     const { error } = await sb.from("boards").upsert({ id:b.id, name:b.name, data:serializeBoard(b) }, { onConflict:"id" });
     if(error) console.warn("save board:", error.message);
   }
@@ -1280,7 +1300,74 @@
     document.getElementById("appShell").style.display="flex";
     await loadAll();
     renderAll();
+    subscribeRealtime();
   }
+
+  /* ===================== REALTIME ======================
+     Listen for changes other people make and merge them in
+     without disturbing what you're currently typing. RLS means
+     you only receive events for boards you're a member of. */
+  let rtChannel=null, pendingRerender=false;
+  function subscribeRealtime(){
+    if(!sb) return;
+    if(rtChannel){ sb.removeChannel(rtChannel); rtChannel=null; }
+    rtChannel = sb.channel("cousins-track-rt")
+      .on("postgres_changes", { event:"*", schema:"public", table:"boards" }, onBoardChange)
+      .on("postgres_changes", { event:"*", schema:"public", table:"board_members" }, onMemberChange)
+      .subscribe();
+  }
+  function softRerender(changedId){
+    renderSidebar();
+    if(changedId && changedId!==state.activeBoardId) return; // a board I'm not looking at changed
+    const ae=document.activeElement;
+    const editing = ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName);
+    if(editing){ pendingRerender=true; return; } // don't yank focus mid-edit; flush on blur
+    renderMain();
+  }
+  document.addEventListener("focusout", ()=>{
+    if(!pendingRerender) return;
+    setTimeout(()=>{ const ae=document.activeElement; if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return; pendingRerender=false; renderMain(); }, 60);
+  });
+  function applyRemoteBoard(b, row){
+    const people=b.people;                 // membership is tracked separately
+    const d=row.data||{};
+    b.name=row.name; b.description=d.description;
+    b.statuses=d.statuses||b.statuses;
+    b.columns=d.columns||b.columns;
+    b.groups=d.groups||[];
+    b.groups.forEach(g=>(g.tasks||[]).forEach(t=>{ t.comments=t.comments||[]; t.attachments=t.attachments||[]; t.activity=t.activity||[]; if(t.recurrence===undefined)t.recurrence=null; }));
+    b.people=people; b.__rev=d.__rev;
+  }
+  function onBoardChange(payload){
+    const ev=payload.eventType;
+    if(ev==="DELETE"){
+      const id=payload.old && payload.old.id; if(!id) return;
+      if(state.boards.some(b=>b.id===id)){ state.boards=state.boards.filter(b=>b.id!==id); ensureAccessible(); renderAll(); }
+      return;
+    }
+    const row=payload.new; if(!row) return;
+    const b=state.boards.find(x=>x.id===row.id);
+    if(!b) return; // not a board I currently hold (or my own brand-new board echo)
+    if(row.data && row.data.__rev && recentRevs.includes(row.data.__rev)) return; // my own write echoed back
+    applyRemoteBoard(b, row);
+    softRerender(row.id);
+  }
+  async function refreshMembers(b){
+    const { data:mem } = await sb.from("board_members").select("email,name,color,role").eq("board_id", b.id);
+    b.people=(mem||[]).map(m=>({ id:m.email, name:m.name||nameFromEmail(m.email), color:m.color||colorForEmail(m.email), role:ROLES.includes(m.role)?m.role:"editor" }));
+  }
+  function onMemberChange(payload){
+    const rec=payload.new||payload.old; if(!rec) return;
+    const affectsMe=(rec.email||"").toLowerCase()===me.email;
+    if(affectsMe){ // I was added/removed/changed → safest to reload my full board set
+      loadAll().then(()=>renderAll());
+      return;
+    }
+    const b=state.boards.find(x=>x.id===rec.board_id);
+    if(b) refreshMembers(b).then(()=>softRerender(rec.board_id));
+  }
+  /* =================== end realtime =================== */
+
   async function sendLink(){
     const email=document.getElementById("loginEmail").value.trim().toLowerCase();
     const msg=document.getElementById("loginMsg");
@@ -1294,11 +1381,16 @@
     if(!sb){ document.getElementById("configWarn").style.display="block"; return; }
     document.getElementById("loginBtn").onclick=sendLink;
     document.getElementById("loginEmail").addEventListener("keydown",e=>{ if(e.key==="Enter") sendLink(); });
+    document.getElementById("googleBtn").onclick=async()=>{
+      const { error } = await sb.auth.signInWithOAuth({ provider:"google", options:{ redirectTo: location.href.split('#')[0] } });
+      if(error){ const m=document.getElementById("loginMsg"); m.textContent=error.message; m.className="login-msg err"; }
+    };
     sb.auth.onAuthStateChange((_evt, session)=>{ if(session && document.getElementById("appShell").style.display==="none") enter(session); });
     const { data:{ session } } = await sb.auth.getSession();
     if(session) enter(session);
   }
   boot();
+  if("serviceWorker" in navigator){ window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }); }
   </script>
 </body>
 </html>
