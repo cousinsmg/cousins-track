@@ -254,6 +254,15 @@
   .row:hover .task-open{opacity:1;}
   .task-open:hover{border-color:var(--accent);color:var(--accent);}
 
+  /* task drag-to-reorder */
+  .task-grip{color:var(--border-strong);font-size:13px;line-height:1;cursor:grab;flex:0 0 auto;padding:0 2px;letter-spacing:-2px;opacity:0;transition:opacity .12s;user-select:none;}
+  .row:hover .task-grip{opacity:1;}
+  .task-grip:active{cursor:grabbing;}
+  .row.dragging{opacity:.4;}
+  .row.drop-before{box-shadow:inset 0 2px 0 var(--accent);}
+  .row.drop-after{box-shadow:inset 0 -2px 0 var(--accent);}
+  .add-task.drop-into{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 2px 0 var(--accent);}
+
   /* archive + multi-select */
   .btn.toggled{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);}
   .row.archived{background:#fbfbfc;}
@@ -730,6 +739,9 @@
             b.columns.forEach(c=>{ nt.values[c.id]=c.type==="people"?[]:(c.type==="status"?notStartedStatusId(b):""); });
             logActivity(nt,"Task created");
             g.tasks.push(nt); save(); renderBody(); openTask(b,g,nt,true); };
+          at.addEventListener("dragover",(e)=>{ if(!dragTask) return; e.preventDefault(); e.dataTransfer.dropEffect="move"; at.classList.add("drop-into"); });
+          at.addEventListener("dragleave",()=>at.classList.remove("drop-into"));
+          at.addEventListener("drop",(e)=>{ if(!dragTask) return; e.preventDefault(); at.classList.remove("drop-into"); const id=dragTask.id; dragTask=null; moveTask(id, g.id, null); });
           table.appendChild(at);
         }
         wrap.appendChild(table);
@@ -762,6 +774,18 @@
   function setArchived(b,g,t,archive){ if(!!t.archived===archive) return; t.archived=archive; logActivity(t, archive?"Archived":"Unarchived"); save(); renderBody(); }
   function accentCell(){ const a=document.createElement("div"); a.className="grp-accent"; return a; }
 
+  let dragTask=null;
+  function moveTask(dragId, targetGroupId, targetTaskId, after){
+    const b=board();
+    let dragged=null;
+    b.groups.forEach(gr=>{ const i=gr.tasks.findIndex(x=>x.id===dragId); if(i>=0) dragged=gr.tasks.splice(i,1)[0]; });
+    if(!dragged) return;
+    const tg=b.groups.find(gr=>gr.id===targetGroupId)||b.groups[0]; if(!tg) return;
+    if(!targetTaskId){ tg.tasks.push(dragged); }
+    else { let idx=tg.tasks.findIndex(x=>x.id===targetTaskId); if(idx<0) tg.tasks.push(dragged); else tg.tasks.splice(after?idx+1:idx,0,dragged); }
+    save(); renderBody();
+  }
+
   function taskRow(b,g,t,editable){
     const row=document.createElement("div"); row.className="row"+(t.archived?" archived":""); row.appendChild(accentCell());
 
@@ -774,18 +798,17 @@
     }
 
     const nameCell=document.createElement("div"); nameCell.className="cell c-name";
-    const doneStatus=b.statuses.find(s=>/done|complete/i.test(s.label));
-    const isDone=doneStatus && t.values["status"]===doneStatus.id;
-    const check=document.createElement("button"); check.className="row-check"+(isDone?" on":"");
-    check.innerHTML=isDone?`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>`:"";
-    check.disabled=!editable; check.title="Toggle done";
-    if(editable) check.onclick=()=>{
-      const statusCol=b.columns.find(c=>c.type==="status"); if(!statusCol||!doneStatus) return;
-      const target=isDone?(b.statuses.find(s=>/not started/i.test(s.label))||b.statuses[b.statuses.length-1]).id:doneStatus.id;
-      setStatus(b,g,t,target); save(); renderBody(); };
+    // drag handle (reorder) — only outside select mode
+    if(editable && !selectMode){
+      const grip=document.createElement("span"); grip.className="task-grip"; grip.textContent="⠿"; grip.title="Drag to reorder"; grip.draggable=true;
+      grip.addEventListener("dragstart",(e)=>{ dragTask={id:t.id}; row.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; try{e.dataTransfer.setData("text/plain",t.id);}catch(_){}
+        try{ e.dataTransfer.setDragImage(row, 24, 18); }catch(_){} });
+      grip.addEventListener("dragend",()=>{ dragTask=null; document.querySelectorAll(".row.dragging,.row.drop-before,.row.drop-after").forEach(r=>r.classList.remove("dragging","drop-before","drop-after")); });
+      nameCell.appendChild(grip);
+    }
     const nameInput=document.createElement("input"); nameInput.className="task-name"; nameInput.value=t.name; nameInput.placeholder="Untitled task"; nameInput.spellcheck=false; nameInput.readOnly=!editable;
     if(editable) nameInput.onchange=()=>{ const old=t.name; t.name=nameInput.value; if(old!==t.name) logActivity(t,`Renamed from “${old}” to “${t.name}”`); save(); };
-    nameCell.appendChild(check); nameCell.appendChild(nameInput);
+    nameCell.appendChild(nameInput);
 
     // meta badges + open-details button
     const meta=document.createElement("span"); meta.className="task-meta";
@@ -805,6 +828,19 @@
     const sp=document.createElement("div"); sp.className="cell c-add"; sp.style.borderRight="none";
     if(editable){ sp.innerHTML=`<button class="add-col-btn" title="Row options" style="font-size:14px;">⋯</button>`; sp.querySelector("button").onclick=(e)=>taskMenu(e.currentTarget,b,g,t); }
     row.appendChild(sp);
+
+    // drop target for reordering
+    if(editable && !selectMode){
+      row.addEventListener("dragover",(e)=>{ if(!dragTask || dragTask.id===t.id) return; e.preventDefault(); e.dataTransfer.dropEffect="move";
+        const r=row.getBoundingClientRect(); const after=e.clientY>r.top+r.height/2;
+        row.classList.toggle("drop-after",after); row.classList.toggle("drop-before",!after); });
+      row.addEventListener("dragleave",()=>{ row.classList.remove("drop-before","drop-after"); });
+      row.addEventListener("drop",(e)=>{ if(!dragTask || dragTask.id===t.id) return; e.preventDefault();
+        const r=row.getBoundingClientRect(); const after=e.clientY>r.top+r.height/2;
+        const id=dragTask.id; dragTask=null;
+        document.querySelectorAll(".row.drop-before,.row.drop-after,.row.dragging").forEach(x=>x.classList.remove("drop-before","drop-after","dragging"));
+        moveTask(id, g.id, t.id, after); });
+    }
     return row;
   }
 
