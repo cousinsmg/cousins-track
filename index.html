@@ -153,6 +153,9 @@
   .col-del:hover{color:var(--danger);opacity:1;}
   .add-col-btn{border:none;background:none;color:var(--ink-soft);font-size:18px;padding:4px 8px;border-radius:6px;}
   .add-col-btn:hover{background:var(--canvas);color:var(--accent);}
+  .col-resize{position:absolute;top:0;right:-4px;width:9px;height:100%;cursor:col-resize;z-index:6;touch-action:none;}
+  .col-resize::after{content:"";position:absolute;top:6px;bottom:6px;right:4px;width:2px;border-radius:2px;background:transparent;}
+  .col-resize:hover::after{background:var(--accent);}
 
   .add-task{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 17px;color:var(--ink-soft);font-weight:500;background:none;border:none;width:100%;text-align:left;border-top:1px solid var(--border);}
   .add-task:hover{color:var(--accent);background:#fafbfc;}
@@ -318,6 +321,7 @@
   .att-upload{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1.5px dashed var(--border-strong);border-radius:10px;padding:18px;color:var(--ink-soft);font-weight:600;cursor:pointer;}
   .att-upload span{font-size:11px;font-weight:500;}
   .att-upload:hover{border-color:var(--accent);color:var(--accent);}
+  .att-upload.drag{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);border-style:solid;}
 
   /* activity / audit */
   .act-list{display:flex;flex-direction:column;}
@@ -714,7 +718,7 @@
         if(selectMode && editable){ const s=document.createElement("div"); s.className="sel-cell"; hr.appendChild(s); }
         const hName=document.createElement("div"); hName.className="cell c-name"; hName.textContent="Task"; hr.appendChild(hName);
         b.columns.forEach(col=>{
-          const c=document.createElement("div"); c.className="cell c-col";
+          const c=document.createElement("div"); c.className="cell c-col"; c.dataset.col=col.id; applyColWidth(c, col.width||170);
           c.innerHTML=`<div class="col-head"><input value="${escapeAttr(col.name)}" spellcheck="false" ${editable?"":"readonly"}>${editable?`<button class="col-del" title="Delete column">✕</button>`:""}</div>`;
           if(editable){
             const inp=c.querySelector("input"); inp.onchange=()=>{ col.name=inp.value.trim()||"Column"; save(); };
@@ -723,6 +727,8 @@
                 b.columns=b.columns.filter(x=>x.id!==col.id);
                 b.groups.forEach(gr=>gr.tasks.forEach(t=>delete t.values[col.id]));
                 save(); renderBody(); }};
+            const rz=document.createElement("div"); rz.className="col-resize"; rz.title="Drag to resize";
+            rz.addEventListener("pointerdown", startColResize(col)); c.appendChild(rz);
           }
           hr.appendChild(c);
         });
@@ -773,6 +779,19 @@
   }
   function setArchived(b,g,t,archive){ if(!!t.archived===archive) return; t.archived=archive; logActivity(t, archive?"Archived":"Unarchived"); save(); renderBody(); }
   function accentCell(){ const a=document.createElement("div"); a.className="grp-accent"; return a; }
+  function applyColWidth(el,w){ el.style.flex=`0 0 ${w}px`; el.style.width=w+"px"; }
+  function startColResize(col){
+    return (e)=>{ e.preventDefault(); e.stopPropagation();
+      const startX=e.clientX, startW=col.width||170;
+      document.body.style.cursor="col-resize"; document.body.style.userSelect="none";
+      const sel='[data-col="'+(window.CSS&&CSS.escape?CSS.escape(col.id):col.id)+'"]';
+      const move=(ev)=>{ const w=Math.max(90, Math.min(680, startW+(ev.clientX-startX))); col.width=w;
+        document.querySelectorAll(sel).forEach(el=>applyColWidth(el,w)); };
+      const up=()=>{ window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up);
+        document.body.style.cursor=""; document.body.style.userSelect=""; save(); };
+      window.addEventListener("pointermove",move); window.addEventListener("pointerup",up);
+    };
+  }
 
   let dragTask=null;
   function moveTask(dragId, targetGroupId, targetTaskId, after){
@@ -823,7 +842,7 @@
     if(editable) nameCell.oncontextmenu=(e)=>{ e.preventDefault(); taskMenu(nameCell,b,g,t); };
     row.appendChild(nameCell);
 
-    b.columns.forEach(col=>row.appendChild(renderCell(b,g,t,col,editable)));
+    b.columns.forEach(col=>{ const cell=renderCell(b,g,t,col,editable); cell.dataset.col=col.id; applyColWidth(cell, col.width||170); row.appendChild(cell); });
 
     const sp=document.createElement("div"); sp.className="cell c-add"; sp.style.borderRight="none";
     if(editable){ sp.innerHTML=`<button class="add-col-btn" title="Row options" style="font-size:14px;">⋯</button>`; sp.querySelector("button").onclick=(e)=>taskMenu(e.currentTarget,b,g,t); }
@@ -1208,17 +1227,22 @@
       });
       p.appendChild(grid);
       if(editable){
-        const up=document.createElement("label"); up.className="att-upload"; up.innerHTML=`＋ Add a file <span>image, PDF, or document</span>`;
+        const up=document.createElement("label"); up.className="att-upload"; up.innerHTML=`＋ Add a file <span>Click to browse, or drag a file here — image, PDF, or document</span>`;
         const fi=document.createElement("input"); fi.type="file"; fi.hidden=true; fi.accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt";
-        fi.onchange=async()=>{ const f=fi.files[0]; if(!f) return;
-          if(f.size>25*1024*1024){ alert("Files are capped at 25 MB."); fi.value=""; return; }
-          up.textContent="Uploading…";
+        async function uploadFile(f){
+          if(!f) return;
+          if(f.size>25*1024*1024){ alert("Files are capped at 25 MB."); return; }
+          up.innerHTML="Uploading…";
           const path=`${b.id}/${t.id}/${uid("f")}-${f.name.replace(/[^\w.\-]+/g,"_")}`;
           const { error } = await sb.storage.from("attachments").upload(path, f, { contentType:f.type||"application/octet-stream", upsert:false });
-          if(error){ alert("Upload failed: "+error.message); fi.value=""; drawFiles(); return; }
+          if(error){ alert("Upload failed: "+error.message); drawFiles(); return; }
           t.attachments.push({id:uid("f"), name:f.name, type:f.type||"application/octet-stream", size:f.size, path, who:meName(), when:new Date().toISOString()});
           logActivity(t,`Attached ${f.name}`); save(); renderBody(); drawFiles();
-        };
+        }
+        fi.onchange=()=>{ uploadFile(fi.files[0]); fi.value=""; };
+        up.addEventListener("dragover",(e)=>{ e.preventDefault(); e.stopPropagation(); up.classList.add("drag"); });
+        up.addEventListener("dragleave",(e)=>{ e.preventDefault(); up.classList.remove("drag"); });
+        up.addEventListener("drop",(e)=>{ e.preventDefault(); e.stopPropagation(); up.classList.remove("drag"); const f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) uploadFile(f); });
         up.appendChild(fi); p.appendChild(up);
       }
     }
