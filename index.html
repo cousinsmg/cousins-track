@@ -254,6 +254,21 @@
   .row:hover .task-open{opacity:1;}
   .task-open:hover{border-color:var(--accent);color:var(--accent);}
 
+  /* archive + multi-select */
+  .btn.toggled{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);}
+  .row.archived{background:#fbfbfc;}
+  .row.archived .task-name{color:var(--ink-soft);font-style:italic;}
+  .row.archived .status-pill,.row.archived .avatar{opacity:.6;}
+  .arch-tag{background:#eef0f4;color:var(--ink-soft);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:20px;}
+  .sel-cell{display:flex;align-items:center;justify-content:center;width:38px;flex:0 0 38px;border-right:1px solid var(--border);cursor:pointer;}
+  .sel-cell input{width:17px;height:17px;cursor:pointer;accent-color:var(--accent);}
+  .row.header .sel-cell{background:transparent;}
+  .bulk-bar{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:10px;background:var(--ink);color:#fff;padding:10px 12px 10px 18px;border-radius:12px;box-shadow:0 12px 40px rgba(27,29,40,.35);}
+  .bulk-bar .bulk-count{font-weight:600;font-size:13.5px;margin-right:4px;}
+  .bulk-bar .btn{padding:7px 14px;}
+  .bulk-bar .btn-soft{background:transparent;color:#fff;border-color:rgba(255,255,255,.3);}
+  .bulk-bar .btn-soft:hover{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.5);}
+
   /* task detail panel */
   .td-tabs{display:flex;gap:2px;padding:0 22px;border-bottom:1px solid var(--border);background:#fafbfc;}
   .td-tab{border:none;background:none;padding:12px 14px;font-weight:600;font-size:13px;color:var(--ink-soft);border-bottom:2px solid transparent;margin-bottom:-1px;}
@@ -402,6 +417,7 @@
   /* ---- in-memory state (loaded from Supabase) ---- */
   let state = { boards:[], activeBoardId:null, templates:[] };
   let searchTerm="";
+  let showArchived=false, selectMode=false, selected=new Set();
 
   /* ---- persistence ---- */
   // Board structure (groups/columns/statuses/tasks) is stored in boards.data (JSONB).
@@ -514,7 +530,7 @@
     return !!(st && /done|complete/i.test(st.label));
   }
   function taskOverdueDate(b,t){
-    if(isTaskDone(b,t)) return null;
+    if(t.archived || isTaskDone(b,t)) return null;
     let due=null;
     b.columns.filter(c=>c.type==="date").forEach(c=>{ const v=t.values[c.id];
       if(v && new Date(v) < startOfToday()){ if(!due || new Date(v)<new Date(due)) due=v; } });
@@ -624,6 +640,8 @@
         </div>
         <div class="toolbar">
           ${editable?`<button class="btn btn-primary" id="addGroupTop">＋ Add group</button>`:""}
+          ${editable?`<button class="btn btn-soft${selectMode?" toggled":""}" id="selectBtn">☑ Select</button>`:""}
+          <button class="btn btn-soft${showArchived?" toggled":""}" id="archivedBtn">🗄 ${showArchived?"Hide archived":"Show archived"}</button>
           <button class="btn btn-warn" id="overdueBtn">⚠ Overdue ${overdueCount?`<span class="badge">${overdueCount}</span>`:""}</button>
           <button class="btn btn-soft" id="workloadBtn">👥 Workload</button>
           ${editable?`<button class="btn btn-soft" id="templatesBtn">▦ Templates</button>`:""}
@@ -644,7 +662,9 @@
       document.getElementById("addGroupTop").onclick=addGroup;
       document.getElementById("manageStatuses").onclick=openStatusModal;
       document.getElementById("templatesBtn").onclick=openTemplates;
+      document.getElementById("selectBtn").onclick=()=>{ selectMode=!selectMode; if(!selectMode) selected.clear(); renderMain(); };
     }
+    document.getElementById("archivedBtn").onclick=()=>{ showArchived=!showArchived; renderMain(); };
     if(admin) document.getElementById("boardSettings").onclick=openSettings;
     document.getElementById("overdueBtn").onclick=openOverdue;
     document.getElementById("workloadBtn").onclick=openWorkload;
@@ -658,15 +678,18 @@
     const term=searchTerm.trim().toLowerCase();
 
     b.groups.forEach(g=>{
-      const tasks=term?g.tasks.filter(t=>t.name.toLowerCase().includes(term)):g.tasks;
+      let tasks = g.tasks.filter(t=> showArchived ? true : !t.archived);
+      if(term) tasks = tasks.filter(t=>t.name.toLowerCase().includes(term));
       if(term && tasks.length===0) return;
+      const activeCount=g.tasks.filter(t=>!t.archived).length;
+      const archivedCount=g.tasks.length-activeCount;
 
       const wrap=document.createElement("div"); wrap.className="group"; wrap.style.setProperty("--grp",g.color);
       const head=document.createElement("div"); head.className="group-head";
       head.innerHTML=`
         <button class="caret ${g.collapsed?"collapsed":""}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></button>
         <input class="group-name" value="${escapeAttr(g.name)}" spellcheck="false" ${editable?"":"readonly"}>
-        <span class="group-count">${g.tasks.length} ${g.tasks.length===1?"task":"tasks"}</span>
+        <span class="group-count">${activeCount} ${activeCount===1?"task":"tasks"}${archivedCount?` · ${archivedCount} archived`:""}</span>
         ${editable?`<button class="group-menu-btn">⋯</button>`:""}`;
       head.querySelector(".caret").onclick=()=>{ g.collapsed=!g.collapsed; save(); renderBody(); };
       if(editable){
@@ -679,6 +702,7 @@
         const table=document.createElement("div"); table.className="table";
         const hr=document.createElement("div"); hr.className="row header";
         hr.appendChild(accentCell());
+        if(selectMode && editable){ const s=document.createElement("div"); s.className="sel-cell"; hr.appendChild(s); }
         const hName=document.createElement("div"); hName.className="cell c-name"; hName.textContent="Task"; hr.appendChild(hName);
         b.columns.forEach(col=>{
           const c=document.createElement("div"); c.className="cell c-col";
@@ -714,12 +738,40 @@
     });
 
     if(editable){ const ag=document.createElement("button"); ag.className="add-group"; ag.innerHTML=`＋ Add group`; ag.onclick=addGroup; body.appendChild(ag); }
-  }
 
-  function accentCell(){ const a=document.createElement("div"); a.className="grp-accent"; return a; }
+    // bulk action bar (select mode)
+    const existing=document.getElementById("bulkBar"); if(existing) existing.remove();
+    if(selectMode && selected.size>0){
+      const b2=board();
+      const picked=[]; b2.groups.forEach(g=>g.tasks.forEach(t=>{ if(selected.has(t.id)) picked.push({g,t}); }));
+      const anyActive=picked.some(x=>!x.t.archived);
+      const anyArchived=picked.some(x=>x.t.archived);
+      const bar=document.createElement("div"); bar.id="bulkBar"; bar.className="bulk-bar";
+      bar.innerHTML=`<span class="bulk-count">${selected.size} selected</span>`;
+      if(anyActive){ const ab=document.createElement("button"); ab.className="btn btn-primary"; ab.textContent="Archive"; ab.onclick=()=>bulkArchive(true); bar.appendChild(ab); }
+      if(anyArchived){ const ub=document.createElement("button"); ub.className="btn btn-soft"; ub.textContent="Unarchive"; ub.onclick=()=>bulkArchive(false); bar.appendChild(ub); }
+      const cl=document.createElement("button"); cl.className="btn btn-soft"; cl.textContent="Clear"; cl.onclick=()=>{ selected.clear(); renderBody(); }; bar.appendChild(cl);
+      document.body.appendChild(bar);
+    }
+  }
+  function bulkArchive(archive){
+    const b=board(); let n=0;
+    b.groups.forEach(g=>g.tasks.forEach(t=>{ if(selected.has(t.id) && !!t.archived!==archive){ t.archived=archive; logActivity(t, archive?"Archived":"Unarchived"); n++; } }));
+    selected.clear(); save(); renderMain();
+  }
+  function setArchived(b,g,t,archive){ if(!!t.archived===archive) return; t.archived=archive; logActivity(t, archive?"Archived":"Unarchived"); save(); renderBody(); }
 
   function taskRow(b,g,t,editable){
-    const row=document.createElement("div"); row.className="row"; row.appendChild(accentCell());
+    const row=document.createElement("div"); row.className="row"+(t.archived?" archived":""); row.appendChild(accentCell());
+
+    // selection checkbox (select mode)
+    if(selectMode && editable){
+      const selCell=document.createElement("label"); selCell.className="sel-cell";
+      const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=selected.has(t.id);
+      cb.onchange=()=>{ if(cb.checked) selected.add(t.id); else selected.delete(t.id); renderBody(); };
+      selCell.appendChild(cb); row.appendChild(selCell);
+    }
+
     const nameCell=document.createElement("div"); nameCell.className="cell c-name";
     const doneStatus=b.statuses.find(s=>/done|complete/i.test(s.label));
     const isDone=doneStatus && t.values["status"]===doneStatus.id;
@@ -736,6 +788,7 @@
 
     // meta badges + open-details button
     const meta=document.createElement("span"); meta.className="task-meta";
+    if(t.archived){ const ar=document.createElement("span"); ar.className="tm arch-tag"; ar.textContent="Archived"; meta.appendChild(ar); }
     if(t.recurrence&&t.recurrence.every){ const r=document.createElement("span"); r.className="tm rec"; r.title="Repeats "+(RECUR_LABEL[t.recurrence.every]||""); r.textContent="🔁"; meta.appendChild(r); }
     if((t.comments||[]).length){ const c=document.createElement("span"); c.className="tm"; c.title="Comments"; c.textContent="💬 "+t.comments.length; meta.appendChild(c); }
     if((t.attachments||[]).length){ const a=document.createElement("span"); a.className="tm"; a.title="Attachments"; a.textContent="📎 "+t.attachments.length; meta.appendChild(a); }
@@ -828,9 +881,10 @@
   function taskMenu(anchor,b,g,t){
     popover(anchor,(pop)=>{
       pop.appendChild(mkItem("Rename task",()=>{ closePop(); const n=prompt("Task:",t.name); if(n!=null){t.name=n;save();renderBody();}}));
-      pop.appendChild(mkItem("Duplicate task",()=>{ closePop(); const copy=JSON.parse(JSON.stringify(t)); copy.id=uid("t"); const i=g.tasks.indexOf(t); g.tasks.splice(i+1,0,copy); save(); renderBody(); }));
+      pop.appendChild(mkItem("Duplicate task",()=>{ closePop(); const copy=JSON.parse(JSON.stringify(t)); copy.id=uid("t"); copy.archived=false; const i=g.tasks.indexOf(t); g.tasks.splice(i+1,0,copy); save(); renderBody(); }));
       pop.appendChild(sep());
-      const del=mkItem("Delete task",()=>{ closePop(); g.tasks=g.tasks.filter(x=>x.id!==t.id); save(); renderBody(); });
+      pop.appendChild(mkItem(t.archived?"Unarchive task":"Archive task",()=>{ closePop(); setArchived(b,g,t,!t.archived); }));
+      const del=mkItem("Delete permanently",()=>{ closePop(); if(confirm("Permanently delete this task? Archiving keeps its history; deleting cannot be undone.")) { g.tasks=g.tasks.filter(x=>x.id!==t.id); save(); renderBody(); } });
       del.classList.add("danger"); pop.appendChild(del);
     });
   }
@@ -862,7 +916,7 @@
     m.appendChild(head); m.appendChild(body); m.appendChild(foot); ov.appendChild(m);
     ov.onmousedown=(e)=>{ if(e.target===ov){ ov.remove(); if(board()) renderMain(); } };
     document.body.appendChild(ov);
-    return {body, foot, sp};
+    return {body, foot, sp, close:()=>{ ov.remove(); if(board()) renderMain(); }};
   }
 
   function openStatusModal(){
@@ -1060,6 +1114,17 @@
       hint.textContent="When a repeating task is marked Done, the next occurrence is created automatically with a fresh due date.";
       recField.appendChild(hint);
       p.appendChild(recField);
+
+      if(editable){
+        const archWrap=document.createElement("div"); archWrap.style.cssText="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);";
+        const ab=document.createElement("button"); ab.className="btn btn-soft"; ab.textContent=t.archived?"↩ Unarchive task":"🗄 Archive task";
+        ab.onclick=()=>{ setArchived(b,g,t,!t.archived); head.close(); };
+        archWrap.appendChild(ab);
+        const note=document.createElement("div"); note.className="td-hint"; note.style.marginTop="7px";
+        note.textContent=t.archived?"This task is archived — hidden from the board but kept with its full history.":"Archiving hides this task from the board but keeps its full history and activity.";
+        archWrap.appendChild(note);
+        p.appendChild(archWrap);
+      }
     })();
 
     /* ----- Comments ----- */
@@ -1217,6 +1282,7 @@
       boards.forEach(b=>{
         const sc=b.columns.find(c=>c.type==="status"); const pcols=b.columns.filter(c=>c.type==="people");
         b.groups.forEach(g=>g.tasks.forEach(t=>{
+          if(t.archived) return;
           const lbl=(b.statuses.find(s=>s.id===(sc?t.values[sc.id]:null))||{}).label||"No status";
           const od=!!taskOverdueDate(b,t);
           const ids=[...new Set(pcols.flatMap(c=>t.values[c.id]||[]))];
@@ -1298,7 +1364,7 @@
       b.statuses=b.statuses||STATUS_DEFAULTS.map(s=>({...s}));
       b.columns=b.columns||[{id:"owner",name:"Owner",type:"people"},{id:"status",name:"Status",type:"status"},{id:"due",name:"Due date",type:"date"}];
       b.groups=b.groups||[];
-      b.groups.forEach(g=>(g.tasks||[]).forEach(t=>{ t.comments=t.comments||[]; t.attachments=t.attachments||[]; t.activity=t.activity||[]; if(t.recurrence===undefined)t.recurrence=null; }));
+      b.groups.forEach(g=>(g.tasks||[]).forEach(t=>{ t.comments=t.comments||[]; t.attachments=t.attachments||[]; t.activity=t.activity||[]; if(t.recurrence===undefined)t.recurrence=null; if(t.archived===undefined)t.archived=false; }));
       return b;
     });
     const { data:tpls } = await sb.from("templates").select("id,name,data");
@@ -1349,7 +1415,7 @@
     b.statuses=d.statuses||b.statuses;
     b.columns=d.columns||b.columns;
     b.groups=d.groups||[];
-    b.groups.forEach(g=>(g.tasks||[]).forEach(t=>{ t.comments=t.comments||[]; t.attachments=t.attachments||[]; t.activity=t.activity||[]; if(t.recurrence===undefined)t.recurrence=null; }));
+    b.groups.forEach(g=>(g.tasks||[]).forEach(t=>{ t.comments=t.comments||[]; t.attachments=t.attachments||[]; t.activity=t.activity||[]; if(t.recurrence===undefined)t.recurrence=null; if(t.archived===undefined)t.archived=false; }));
     b.people=people; b.__rev=d.__rev;
   }
   function onBoardChange(payload){
