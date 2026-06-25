@@ -716,7 +716,10 @@
         const hr=document.createElement("div"); hr.className="row header";
         hr.appendChild(accentCell());
         if(selectMode && editable){ const s=document.createElement("div"); s.className="sel-cell"; hr.appendChild(s); }
-        const hName=document.createElement("div"); hName.className="cell c-name"; hName.textContent="Task"; hr.appendChild(hName);
+        const hName=document.createElement("div"); hName.className="cell c-name"; hName.dataset.col="__name"; hName.textContent="Task";
+        if(b.nameWidth) applyNameWidth(hName, b.nameWidth);
+        if(editable){ const rzN=document.createElement("div"); rzN.className="col-resize"; rzN.title="Drag to resize"; rzN.addEventListener("pointerdown", startNameResize(b)); hName.appendChild(rzN); }
+        hr.appendChild(hName);
         b.columns.forEach(col=>{
           const c=document.createElement("div"); c.className="cell c-col"; c.dataset.col=col.id; applyColWidth(c, col.width||170);
           c.innerHTML=`<div class="col-head"><input value="${escapeAttr(col.name)}" spellcheck="false" ${editable?"":"readonly"}>${editable?`<button class="col-del" title="Delete column">✕</button>`:""}</div>`;
@@ -780,6 +783,19 @@
   function setArchived(b,g,t,archive){ if(!!t.archived===archive) return; t.archived=archive; logActivity(t, archive?"Archived":"Unarchived"); save(); renderBody(); }
   function accentCell(){ const a=document.createElement("div"); a.className="grp-accent"; return a; }
   function applyColWidth(el,w){ el.style.flex=`0 0 ${w}px`; el.style.width=w+"px"; }
+  function applyNameWidth(el,w){ el.style.flex=`0 0 ${w}px`; el.style.width=w+"px"; el.style.minWidth=w+"px"; }
+  function startNameResize(b){
+    return (e)=>{ e.preventDefault(); e.stopPropagation();
+      const cellEl=e.currentTarget.parentElement;
+      const startX=e.clientX, startW=b.nameWidth||cellEl.getBoundingClientRect().width;
+      document.body.style.cursor="col-resize"; document.body.style.userSelect="none";
+      const move=(ev)=>{ const w=Math.max(140, Math.min(900, startW+(ev.clientX-startX))); b.nameWidth=w;
+        document.querySelectorAll('[data-col="__name"]').forEach(el=>applyNameWidth(el,w)); };
+      const up=()=>{ window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up);
+        document.body.style.cursor=""; document.body.style.userSelect=""; save(); };
+      window.addEventListener("pointermove",move); window.addEventListener("pointerup",up);
+    };
+  }
   function startColResize(col){
     return (e)=>{ e.preventDefault(); e.stopPropagation();
       const startX=e.clientX, startW=col.width||170;
@@ -816,7 +832,8 @@
       selCell.appendChild(cb); row.appendChild(selCell);
     }
 
-    const nameCell=document.createElement("div"); nameCell.className="cell c-name";
+    const nameCell=document.createElement("div"); nameCell.className="cell c-name"; nameCell.dataset.col="__name";
+    if(b.nameWidth) applyNameWidth(nameCell, b.nameWidth);
     // drag handle (reorder) — only outside select mode
     if(editable && !selectMode){
       const grip=document.createElement("span"); grip.className="task-grip"; grip.textContent="⠿"; grip.title="Drag to reorder"; grip.draggable=true;
