@@ -272,6 +272,12 @@
   .row.drop-before{box-shadow:inset 0 2px 0 var(--accent);}
   .row.drop-after{box-shadow:inset 0 -2px 0 var(--accent);}
   .add-task.drop-into{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 2px 0 var(--accent);}
+  .group-grip{color:var(--border-strong);font-size:13px;line-height:1;cursor:grab;padding:0 4px;letter-spacing:-2px;opacity:0;transition:opacity .12s;user-select:none;align-self:center;}
+  .group-head:hover .group-grip{opacity:1;}
+  .group-grip:active{cursor:grabbing;}
+  .group.g-dragging{opacity:.45;}
+  .group.g-drop-before{box-shadow:inset 0 3px 0 var(--accent);}
+  .group.g-drop-after{box-shadow:inset 0 -3px 0 var(--accent);}
 
   /* archive + multi-select */
   .btn.toggled{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);}
@@ -723,6 +729,20 @@
       if(editable){
         const gName=head.querySelector(".group-name"); gName.onchange=()=>{ g.name=gName.value.trim()||"Group"; save(); };
         head.querySelector(".group-menu-btn").onclick=(e)=>groupMenu(e.currentTarget,g);
+        // drag handle to reorder groups
+        const ggrip=document.createElement("span"); ggrip.className="group-grip"; ggrip.textContent="⠿"; ggrip.title="Drag to reorder group"; ggrip.draggable=true;
+        ggrip.addEventListener("dragstart",(e)=>{ dragGroup={id:g.id}; wrap.classList.add("g-dragging"); e.dataTransfer.effectAllowed="move"; try{e.dataTransfer.setData("text/plain",g.id);}catch(_){}
+          try{ e.dataTransfer.setDragImage(head, 20, 16); }catch(_){} });
+        ggrip.addEventListener("dragend",()=>{ dragGroup=null; document.querySelectorAll(".group.g-dragging,.group.g-drop-before,.group.g-drop-after").forEach(x=>x.classList.remove("g-dragging","g-drop-before","g-drop-after")); });
+        head.insertBefore(ggrip, head.firstChild);
+        wrap.addEventListener("dragover",(e)=>{ if(!dragGroup || dragGroup.id===g.id) return; e.preventDefault(); e.dataTransfer.dropEffect="move";
+          const r=wrap.getBoundingClientRect(); const after=e.clientY>r.top+r.height/2;
+          wrap.classList.toggle("g-drop-after",after); wrap.classList.toggle("g-drop-before",!after); });
+        wrap.addEventListener("dragleave",(e)=>{ if(!wrap.contains(e.relatedTarget)) wrap.classList.remove("g-drop-before","g-drop-after"); });
+        wrap.addEventListener("drop",(e)=>{ if(!dragGroup || dragGroup.id===g.id) return; e.preventDefault();
+          const r=wrap.getBoundingClientRect(); const after=e.clientY>r.top+r.height/2; const id=dragGroup.id; dragGroup=null;
+          document.querySelectorAll(".group.g-drop-before,.group.g-drop-after,.group.g-dragging").forEach(x=>x.classList.remove("g-drop-before","g-drop-after","g-dragging"));
+          moveGroup(id, g.id, after); });
       }
       wrap.appendChild(head);
 
@@ -824,7 +844,7 @@
     };
   }
 
-  let dragTask=null;
+  let dragTask=null, dragGroup=null;
   function moveTask(dragId, targetGroupId, targetTaskId, after){
     const b=board();
     let dragged=null;
@@ -833,6 +853,14 @@
     const tg=b.groups.find(gr=>gr.id===targetGroupId)||b.groups[0]; if(!tg) return;
     if(!targetTaskId){ tg.tasks.push(dragged); }
     else { let idx=tg.tasks.findIndex(x=>x.id===targetTaskId); if(idx<0) tg.tasks.push(dragged); else tg.tasks.splice(after?idx+1:idx,0,dragged); }
+    save(); renderBody();
+  }
+  function moveGroup(dragId, targetId, after){
+    const b=board();
+    const from=b.groups.findIndex(g=>g.id===dragId); if(from<0) return;
+    const dragged=b.groups.splice(from,1)[0];
+    let idx=b.groups.findIndex(g=>g.id===targetId);
+    if(idx<0){ b.groups.push(dragged); } else { b.groups.splice(after?idx+1:idx, 0, dragged); }
     save(); renderBody();
   }
 
