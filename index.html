@@ -433,6 +433,13 @@
   let state = { boards:[], activeBoardId:null, templates:[] };
   let searchTerm="";
   let showArchived=false, selectMode=false, selected=new Set();
+  // Group collapse is a personal view preference (per user, this browser) — never synced to others.
+  let collapsedSet=new Set();
+  function collapseKey(){ return "ct.collapsed."+(me.email||"anon"); }
+  function loadCollapsed(){ try{ const raw=localStorage.getItem(collapseKey()); collapsedSet=new Set(raw?JSON.parse(raw):[]); }catch(_){ collapsedSet=new Set(); } }
+  function saveCollapsed(){ try{ localStorage.setItem(collapseKey(), JSON.stringify([...collapsedSet])); }catch(_){} }
+  function isCollapsed(g){ return collapsedSet.has(g.id); }
+  function toggleCollapsed(g){ if(collapsedSet.has(g.id)) collapsedSet.delete(g.id); else collapsedSet.add(g.id); saveCollapsed(); }
 
   /* ---- persistence ---- */
   // Board structure (groups/columns/statuses/tasks) is stored in boards.data (JSONB).
@@ -702,18 +709,18 @@
       const wrap=document.createElement("div"); wrap.className="group"; wrap.style.setProperty("--grp",g.color);
       const head=document.createElement("div"); head.className="group-head";
       head.innerHTML=`
-        <button class="caret ${g.collapsed?"collapsed":""}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></button>
+        <button class="caret ${isCollapsed(g)?"collapsed":""}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></button>
         <input class="group-name" value="${escapeAttr(g.name)}" spellcheck="false" ${editable?"":"readonly"}>
         <span class="group-count">${activeCount} ${activeCount===1?"task":"tasks"}${archivedCount?` · ${archivedCount} archived`:""}</span>
         ${editable?`<button class="group-menu-btn">⋯</button>`:""}`;
-      head.querySelector(".caret").onclick=()=>{ g.collapsed=!g.collapsed; save(); renderBody(); };
+      head.querySelector(".caret").onclick=()=>{ toggleCollapsed(g); renderBody(); };
       if(editable){
         const gName=head.querySelector(".group-name"); gName.onchange=()=>{ g.name=gName.value.trim()||"Group"; save(); };
         head.querySelector(".group-menu-btn").onclick=(e)=>groupMenu(e.currentTarget,g);
       }
       wrap.appendChild(head);
 
-      if(!g.collapsed){
+      if(!isCollapsed(g)){
         const table=document.createElement("div"); table.className="table";
         const hr=document.createElement("div"); hr.className="row header";
         hr.appendChild(accentCell());
@@ -1479,6 +1486,7 @@ The board appears automatically once you're signed in.
     me.email=(session.user.email||"").toLowerCase();
     me.name=nameFromEmail(me.email);
     me.color=colorForEmail(me.email);
+    loadCollapsed();
     document.getElementById("loginScreen").style.display="none";
     document.getElementById("appShell").style.display="flex";
     await loadAll();
