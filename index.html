@@ -229,6 +229,11 @@
   .member-row .mem-email{color:var(--ink-soft);}
   .mem-invite{border:1px solid var(--border);background:var(--surface);color:var(--accent);font-weight:600;font-size:12px;padding:7px 10px;border-radius:8px;flex:0 0 auto;white-space:nowrap;}
   .mem-invite:hover{border-color:var(--accent);background:var(--accent-soft);}
+  .inv-meta{font-size:13px;color:var(--ink-soft);line-height:1.7;margin-bottom:12px;}
+  .inv-meta b{color:var(--ink);}
+  .inv-text{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:13.5px;font-family:inherit;line-height:1.5;outline:none;resize:vertical;color:var(--ink);}
+  .inv-text:focus{border-color:var(--accent);}
+  .inv-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
 
   /* login screen */
   .login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(1200px 600px at 50% -10%, #ecedfb, var(--canvas));}
@@ -1031,14 +1036,36 @@ You've been given ${p.role} access to the “${b.name}” board on Cousins Track
 
 To open it:
 1. Go to ${url}
-2. Sign in with THIS email address (${p.id}) — tap “Continue with Google”, or enter your email for a one-time magic link.
+2. Sign in with THIS email address (${p.id}) — click “Continue with Google”, or enter your email for a one-time magic link.
 
-The board appears automatically once you're signed in.
-
-— Sent from Cousins Track`;
-    const a=document.createElement("a");
-    a.href=`mailto:${p.id}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
-    a.style.display="none"; document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(),0);
+The board appears automatically once you're signed in.`;
+    const { body:mb }=modal(h=>h.innerHTML=`<h3>Invite ${escapeHtml(p.name||p.id)}</h3><p>Copy this message into an email or chat, or open it straight in Gmail.</p>`,{wide:true});
+    mb.innerHTML="";
+    const meta=document.createElement("div"); meta.className="inv-meta";
+    meta.innerHTML=`<div><b>To:</b> ${escapeHtml(p.id)}</div><div><b>Subject:</b> ${escapeHtml(subj)}</div>`;
+    mb.appendChild(meta);
+    const ta=document.createElement("textarea"); ta.className="inv-text"; ta.value=body; ta.rows=9; mb.appendChild(ta);
+    const btns=document.createElement("div"); btns.className="inv-btns";
+    const copyMsg=document.createElement("button"); copyMsg.className="btn btn-primary"; copyMsg.textContent="Copy message";
+    copyMsg.onclick=()=>copyText(ta.value, copyMsg, "Copy message");
+    const copyLink=document.createElement("button"); copyLink.className="btn btn-soft"; copyLink.textContent="Copy link only";
+    copyLink.onclick=()=>copyText(url, copyLink, "Copy link only");
+    const gmail=document.createElement("button"); gmail.className="btn btn-soft"; gmail.textContent="Open in Gmail";
+    gmail.onclick=()=>window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(p.id)}&su=${encodeURIComponent(subj)}&body=${encodeURIComponent(ta.value)}`,"_blank");
+    const mailApp=document.createElement("button"); mailApp.className="btn btn-soft"; mailApp.textContent="Open in email app";
+    mailApp.onclick=()=>{ const a=document.createElement("a"); a.href=`mailto:${p.id}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(ta.value)}`; a.click(); };
+    btns.appendChild(copyMsg); btns.appendChild(gmail); btns.appendChild(copyLink); btns.appendChild(mailApp);
+    mb.appendChild(btns);
+  }
+  function copyText(txt, btn, original){
+    const done=()=>{ btn.textContent="Copied ✓"; setTimeout(()=>btn.textContent=original,1500); };
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopy(txt,done)); }
+    else fallbackCopy(txt,done);
+  }
+  function fallbackCopy(txt, done){
+    const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); done(); }catch(_){ alert("Copy failed — select the text and copy manually."); }
+    ta.remove();
   }
 
   function openSettings(){
