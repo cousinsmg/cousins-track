@@ -227,6 +227,8 @@
   .member-row .mem-fields input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;outline:none;}
   .member-row .mem-fields input:focus{border-color:var(--accent);}
   .member-row .mem-email{color:var(--ink-soft);}
+  .mem-invite{border:1px solid var(--border);background:var(--surface);color:var(--accent);font-weight:600;font-size:12px;padding:7px 10px;border-radius:8px;flex:0 0 auto;white-space:nowrap;}
+  .mem-invite:hover{border-color:var(--accent);background:var(--accent-soft);}
 
   /* login screen */
   .login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(1200px 600px at 50% -10%, #ecedfb, var(--canvas));}
@@ -1013,6 +1015,25 @@
     })();
   }
 
+  function inviteMember(b,p){
+    const url=location.origin+location.pathname;
+    const subj=`You've been added to “${b.name}” on Cousins Track`;
+    const body=`Hi ${p.name||""},
+
+You've been given ${p.role} access to the “${b.name}” board on Cousins Track.
+
+To open it:
+1. Go to ${url}
+2. Sign in with THIS email address (${p.id}) — tap “Continue with Google”, or enter your email for a one-time magic link.
+
+The board appears automatically once you're signed in.
+
+— Sent from Cousins Track`;
+    const a=document.createElement("a");
+    a.href=`mailto:${p.id}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+    a.style.display="none"; document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(),0);
+  }
+
   function openSettings(){
     const b=board();
     const {body}=modal(h=>h.innerHTML=`<h3>Board settings — ${escapeHtml(b.name)}</h3><p>Control who can see and work in this board. Members sign in with the email you list here.</p>`,{wide:true});
@@ -1028,9 +1049,11 @@
             <input type="email" class="mem-email" value="${escapeAttr(p.id)}" placeholder="email@domain.com">
           </div>
           <select>${ROLES.map(r=>`<option value="${r}" ${p.role===r?"selected":""}>${cap(r)}</option>`).join("")}</select>
+          <button class="mem-invite" title="Email this person sign-in instructions">✉ Invite</button>
           <button class="edit-del" title="Remove member">✕</button>`;
         const col=row.querySelector('input[type=color]');
         const nm=row.querySelector('.mem-name'); const em=row.querySelector('.mem-email'); const sel=row.querySelector("select");
+        row.querySelector(".mem-invite").onclick=()=>inviteMember(b,p);
         col.onchange=()=>{ p.color=col.value; syncMembers(b); if(p.id===me.email)renderSidebar(); };
         nm.onchange=()=>{ p.name=nm.value.trim()||nameFromEmail(p.id); syncMembers(b); renderBody(); if(p.id===me.email)renderSidebar(); };
         em.onchange=()=>{
@@ -1064,6 +1087,8 @@
         if(b.people.some(x=>x.id.toLowerCase()===email)){ alert("That email is already a member."); return; }
         b.people.push({id:email, name:nameFromEmail(email), color:colorForEmail(email), role:"editor"});
         syncMembers(b); draw(); renderBody();
+        const newp=b.people[b.people.length-1];
+        if(confirm(`Added ${email}. Email them sign-in instructions now?`)) inviteMember(b,newp);
       };
       body.appendChild(add);
 
