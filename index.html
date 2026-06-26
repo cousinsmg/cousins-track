@@ -681,7 +681,6 @@
           <button class="btn btn-warn" id="overdueBtn">⚠ Overdue ${overdueCount?`<span class="badge">${overdueCount}</span>`:""}</button>
           <button class="btn btn-soft" id="workloadBtn">👥 Workload</button>
           ${editable?`<button class="btn btn-soft" id="templatesBtn">▦ Templates</button>`:""}
-          ${editable?`<button class="btn btn-soft" id="manageStatuses">◐ Statuses</button>`:""}
           <button class="btn btn-soft${(selectMode||showArchived)?" toggled":""}" id="settingsMenuBtn">⚙ Settings ▾</button>
           <div class="search">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
@@ -696,7 +695,6 @@
       const tEl=document.getElementById("boardTitle"); tEl.onchange=()=>{ b.name=tEl.value.trim()||"Untitled board"; save(); renderSidebar(); };
       const dEl=document.getElementById("boardDesc"); dEl.onchange=()=>{ b.description=dEl.value; save(); };
       document.getElementById("addGroupTop").onclick=addGroup;
-      document.getElementById("manageStatuses").onclick=openStatusModal;
       document.getElementById("templatesBtn").onclick=openTemplates;
     }
     document.getElementById("collapseAllBtn").onclick=()=>{
@@ -710,6 +708,7 @@
       popover(e.currentTarget,(pop)=>{
         if(editable) pop.appendChild(mkItem((selectMode?"✓ ":"")+"☑ Select tasks",()=>{ closePop(); selectMode=!selectMode; if(!selectMode) selected.clear(); renderMain(); }));
         pop.appendChild(mkItem((showArchived?"✓ ":"")+"🗄 Show archived tasks",()=>{ closePop(); showArchived=!showArchived; renderMain(); }));
+        if(editable) pop.appendChild(mkItem("◐ Statuses",()=>{ closePop(); openStatusModal(); }));
         if(admin){ pop.appendChild(sep()); pop.appendChild(mkItem("👥 Members & access",()=>{ closePop(); openSettings(); })); }
       });
     };
