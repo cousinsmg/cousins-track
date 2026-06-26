@@ -1,0 +1,509 @@
+# Cousins Track — Inspiration sayings
+# HOW TO USE THIS FILE:
+#   • Put ONE saying per line.
+#   • Blank lines are ignored.
+#   • Lines starting with # are comments (ignored) — like these.
+#   • You can include an author on the same line, e.g.  Stay hungry, stay foolish. — Steve Jobs
+#   • Save the file, push it to GitHub, and the "Get Inspiration" button uses it.
+# Delete the examples below and paste your 200 sayings underneath.
+
+Start before you're ready.
+Every small step builds momentum.
+Your future is earned today.
+Progress beats perfection.
+Believe in the process.
+Do what matters most first.
+Protect your attention.
+One priority at a time.
+Clarity creates speed.
+Stay on the mission.
+Lead by example.
+Great leaders finish.
+Earn trust daily.
+Lift others as you climb.
+Character builds influence.
+Difficult roads build strong people.
+Lean into discomfort.
+Obstacles reveal opportunity.
+Face the hard thing first.
+Growth begins outside your comfort zone.
+Good is the enemy of great.
+Raise the standard.
+Details matter.
+Excellence is a habit.
+Finish with pride.
+Success follows consistency.
+Results reward action.
+Build daily victories.
+Stay committed.
+Win today.
+Take the next step.
+Choose discipline over delay.
+Finish what you start.
+Build momentum.
+Make progress today.
+Execute with purpose.
+Focus on solutions.
+Own your results.
+Do the important work.
+Create value.
+Stay resilient.
+Lead with integrity.
+Keep improving.
+Think long term.
+Act with confidence.
+Be dependable.
+Learn continuously.
+Keep your promises.
+Make every hour count.
+Outwork yesterday.
+Start before you're ready. Every day is a new opportunity.
+Every small step builds momentum. Every day is a new opportunity.
+Your future is earned today. Every day is a new opportunity.
+Progress beats perfection. Every day is a new opportunity.
+Believe in the process. Every day is a new opportunity.
+Do what matters most first. Every day is a new opportunity.
+Protect your attention. Every day is a new opportunity.
+One priority at a time. Every day is a new opportunity.
+Clarity creates speed. Every day is a new opportunity.
+Stay on the mission. Every day is a new opportunity.
+Lead by example. Every day is a new opportunity.
+Great leaders finish. Every day is a new opportunity.
+Earn trust daily. Every day is a new opportunity.
+Lift others as you climb. Every day is a new opportunity.
+Character builds influence. Every day is a new opportunity.
+Difficult roads build strong people. Every day is a new opportunity.
+Lean into discomfort. Every day is a new opportunity.
+Obstacles reveal opportunity. Every day is a new opportunity.
+Face the hard thing first. Every day is a new opportunity.
+Growth begins outside your comfort zone. Every day is a new opportunity.
+Good is the enemy of great. Every day is a new opportunity.
+Raise the standard. Every day is a new opportunity.
+Details matter. Every day is a new opportunity.
+Excellence is a habit. Every day is a new opportunity.
+Finish with pride. Every day is a new opportunity.
+Success follows consistency. Every day is a new opportunity.
+Results reward action. Every day is a new opportunity.
+Build daily victories. Every day is a new opportunity.
+Stay committed. Every day is a new opportunity.
+Win today. Every day is a new opportunity.
+Take the next step. Every day is a new opportunity.
+Choose discipline over delay. Every day is a new opportunity.
+Finish what you start. Every day is a new opportunity.
+Build momentum. Every day is a new opportunity.
+Make progress today. Every day is a new opportunity.
+Execute with purpose. Every day is a new opportunity.
+Focus on solutions. Every day is a new opportunity.
+Own your results. Every day is a new opportunity.
+Do the important work. Every day is a new opportunity.
+Create value. Every day is a new opportunity.
+Stay resilient. Every day is a new opportunity.
+Lead with integrity. Every day is a new opportunity.
+Keep improving. Every day is a new opportunity.
+Think long term. Every day is a new opportunity.
+Act with confidence. Every day is a new opportunity.
+Be dependable. Every day is a new opportunity.
+Learn continuously. Every day is a new opportunity.
+Keep your promises. Every day is a new opportunity.
+Make every hour count. Every day is a new opportunity.
+Outwork yesterday. Every day is a new opportunity.
+Start before you're ready. One decision can change everything.
+Every small step builds momentum. One decision can change everything.
+Your future is earned today. One decision can change everything.
+Progress beats perfection. One decision can change everything.
+Believe in the process. One decision can change everything.
+Do what matters most first. One decision can change everything.
+Protect your attention. One decision can change everything.
+One priority at a time. One decision can change everything.
+Clarity creates speed. One decision can change everything.
+Stay on the mission. One decision can change everything.
+Lead by example. One decision can change everything.
+Great leaders finish. One decision can change everything.
+Earn trust daily. One decision can change everything.
+Lift others as you climb. One decision can change everything.
+Character builds influence. One decision can change everything.
+Difficult roads build strong people. One decision can change everything.
+Lean into discomfort. One decision can change everything.
+Obstacles reveal opportunity. One decision can change everything.
+Face the hard thing first. One decision can change everything.
+Growth begins outside your comfort zone. One decision can change everything.
+Good is the enemy of great. One decision can change everything.
+Raise the standard. One decision can change everything.
+Details matter. One decision can change everything.
+Excellence is a habit. One decision can change everything.
+Finish with pride. One decision can change everything.
+Success follows consistency. One decision can change everything.
+Results reward action. One decision can change everything.
+Build daily victories. One decision can change everything.
+Stay committed. One decision can change everything.
+Win today. One decision can change everything.
+Take the next step. One decision can change everything.
+Choose discipline over delay. One decision can change everything.
+Finish what you start. One decision can change everything.
+Build momentum. One decision can change everything.
+Make progress today. One decision can change everything.
+Execute with purpose. One decision can change everything.
+Focus on solutions. One decision can change everything.
+Own your results. One decision can change everything.
+Do the important work. One decision can change everything.
+Create value. One decision can change everything.
+Stay resilient. One decision can change everything.
+Lead with integrity. One decision can change everything.
+Keep improving. One decision can change everything.
+Think long term. One decision can change everything.
+Act with confidence. One decision can change everything.
+Be dependable. One decision can change everything.
+Learn continuously. One decision can change everything.
+Keep your promises. One decision can change everything.
+Make every hour count. One decision can change everything.
+Outwork yesterday. One decision can change everything.
+Start before you're ready. Success is built one step at a time.
+Every small step builds momentum. Success is built one step at a time.
+Your future is earned today. Success is built one step at a time.
+Progress beats perfection. Success is built one step at a time.
+Believe in the process. Success is built one step at a time.
+Do what matters most first. Success is built one step at a time.
+Protect your attention. Success is built one step at a time.
+One priority at a time. Success is built one step at a time.
+Clarity creates speed. Success is built one step at a time.
+Stay on the mission. Success is built one step at a time.
+Lead by example. Success is built one step at a time.
+Great leaders finish. Success is built one step at a time.
+Earn trust daily. Success is built one step at a time.
+Lift others as you climb. Success is built one step at a time.
+Character builds influence. Success is built one step at a time.
+Difficult roads build strong people. Success is built one step at a time.
+Lean into discomfort. Success is built one step at a time.
+Obstacles reveal opportunity. Success is built one step at a time.
+Face the hard thing first. Success is built one step at a time.
+Growth begins outside your comfort zone. Success is built one step at a time.
+Good is the enemy of great. Success is built one step at a time.
+Raise the standard. Success is built one step at a time.
+Details matter. Success is built one step at a time.
+Excellence is a habit. Success is built one step at a time.
+Finish with pride. Success is built one step at a time.
+Success follows consistency. Success is built one step at a time.
+Results reward action. Success is built one step at a time.
+Build daily victories. Success is built one step at a time.
+Stay committed. Success is built one step at a time.
+Win today. Success is built one step at a time.
+Take the next step. Success is built one step at a time.
+Choose discipline over delay. Success is built one step at a time.
+Finish what you start. Success is built one step at a time.
+Build momentum. Success is built one step at a time.
+Make progress today. Success is built one step at a time.
+Execute with purpose. Success is built one step at a time.
+Focus on solutions. Success is built one step at a time.
+Own your results. Success is built one step at a time.
+Do the important work. Success is built one step at a time.
+Create value. Success is built one step at a time.
+Stay resilient. Success is built one step at a time.
+Lead with integrity. Success is built one step at a time.
+Keep improving. Success is built one step at a time.
+Think long term. Success is built one step at a time.
+Act with confidence. Success is built one step at a time.
+Be dependable. Success is built one step at a time.
+Learn continuously. Success is built one step at a time.
+Keep your promises. Success is built one step at a time.
+Make every hour count. Success is built one step at a time.
+Outwork yesterday. Success is built one step at a time.
+Start before you're ready. Keep moving forward.
+Every small step builds momentum. Keep moving forward.
+Your future is earned today. Keep moving forward.
+Progress beats perfection. Keep moving forward.
+Believe in the process. Keep moving forward.
+Do what matters most first. Keep moving forward.
+Protect your attention. Keep moving forward.
+One priority at a time. Keep moving forward.
+Clarity creates speed. Keep moving forward.
+Stay on the mission. Keep moving forward.
+Lead by example. Keep moving forward.
+Great leaders finish. Keep moving forward.
+Earn trust daily. Keep moving forward.
+Lift others as you climb. Keep moving forward.
+Character builds influence. Keep moving forward.
+Difficult roads build strong people. Keep moving forward.
+Lean into discomfort. Keep moving forward.
+Obstacles reveal opportunity. Keep moving forward.
+Face the hard thing first. Keep moving forward.
+Growth begins outside your comfort zone. Keep moving forward.
+Good is the enemy of great. Keep moving forward.
+Raise the standard. Keep moving forward.
+Details matter. Keep moving forward.
+Excellence is a habit. Keep moving forward.
+Finish with pride. Keep moving forward.
+Success follows consistency. Keep moving forward.
+Results reward action. Keep moving forward.
+Build daily victories. Keep moving forward.
+Stay committed. Keep moving forward.
+Win today. Keep moving forward.
+Take the next step. Keep moving forward.
+Choose discipline over delay. Keep moving forward.
+Finish what you start. Keep moving forward.
+Build momentum. Keep moving forward.
+Make progress today. Keep moving forward.
+Execute with purpose. Keep moving forward.
+Focus on solutions. Keep moving forward.
+Own your results. Keep moving forward.
+Do the important work. Keep moving forward.
+Create value. Keep moving forward.
+Stay resilient. Keep moving forward.
+Lead with integrity. Keep moving forward.
+Keep improving. Keep moving forward.
+Think long term. Keep moving forward.
+Act with confidence. Keep moving forward.
+Be dependable. Keep moving forward.
+Learn continuously. Keep moving forward.
+Keep your promises. Keep moving forward.
+Make every hour count. Keep moving forward.
+Outwork yesterday. Keep moving forward.
+Start before you're ready. Your future self will thank you.
+Every small step builds momentum. Your future self will thank you.
+Your future is earned today. Your future self will thank you.
+Progress beats perfection. Your future self will thank you.
+Believe in the process. Your future self will thank you.
+Do what matters most first. Your future self will thank you.
+Protect your attention. Your future self will thank you.
+One priority at a time. Your future self will thank you.
+Clarity creates speed. Your future self will thank you.
+Stay on the mission. Your future self will thank you.
+Lead by example. Your future self will thank you.
+Great leaders finish. Your future self will thank you.
+Earn trust daily. Your future self will thank you.
+Lift others as you climb. Your future self will thank you.
+Character builds influence. Your future self will thank you.
+Difficult roads build strong people. Your future self will thank you.
+Lean into discomfort. Your future self will thank you.
+Obstacles reveal opportunity. Your future self will thank you.
+Face the hard thing first. Your future self will thank you.
+Growth begins outside your comfort zone. Your future self will thank you.
+Good is the enemy of great. Your future self will thank you.
+Raise the standard. Your future self will thank you.
+Details matter. Your future self will thank you.
+Excellence is a habit. Your future self will thank you.
+Finish with pride. Your future self will thank you.
+Success follows consistency. Your future self will thank you.
+Results reward action. Your future self will thank you.
+Build daily victories. Your future self will thank you.
+Stay committed. Your future self will thank you.
+Win today. Your future self will thank you.
+Take the next step. Your future self will thank you.
+Choose discipline over delay. Your future self will thank you.
+Finish what you start. Your future self will thank you.
+Build momentum. Your future self will thank you.
+Make progress today. Your future self will thank you.
+Execute with purpose. Your future self will thank you.
+Focus on solutions. Your future self will thank you.
+Own your results. Your future self will thank you.
+Do the important work. Your future self will thank you.
+Create value. Your future self will thank you.
+Stay resilient. Your future self will thank you.
+Lead with integrity. Your future self will thank you.
+Keep improving. Your future self will thank you.
+Think long term. Your future self will thank you.
+Act with confidence. Your future self will thank you.
+Be dependable. Your future self will thank you.
+Learn continuously. Your future self will thank you.
+Keep your promises. Your future self will thank you.
+Make every hour count. Your future self will thank you.
+Outwork yesterday. Your future self will thank you.
+Start before you're ready. Consistency beats intensity.
+Every small step builds momentum. Consistency beats intensity.
+Your future is earned today. Consistency beats intensity.
+Progress beats perfection. Consistency beats intensity.
+Believe in the process. Consistency beats intensity.
+Do what matters most first. Consistency beats intensity.
+Protect your attention. Consistency beats intensity.
+One priority at a time. Consistency beats intensity.
+Clarity creates speed. Consistency beats intensity.
+Stay on the mission. Consistency beats intensity.
+Lead by example. Consistency beats intensity.
+Great leaders finish. Consistency beats intensity.
+Earn trust daily. Consistency beats intensity.
+Lift others as you climb. Consistency beats intensity.
+Character builds influence. Consistency beats intensity.
+Difficult roads build strong people. Consistency beats intensity.
+Lean into discomfort. Consistency beats intensity.
+Obstacles reveal opportunity. Consistency beats intensity.
+Face the hard thing first. Consistency beats intensity.
+Growth begins outside your comfort zone. Consistency beats intensity.
+Good is the enemy of great. Consistency beats intensity.
+Raise the standard. Consistency beats intensity.
+Details matter. Consistency beats intensity.
+Excellence is a habit. Consistency beats intensity.
+Finish with pride. Consistency beats intensity.
+Success follows consistency. Consistency beats intensity.
+Results reward action. Consistency beats intensity.
+Build daily victories. Consistency beats intensity.
+Stay committed. Consistency beats intensity.
+Win today. Consistency beats intensity.
+Take the next step. Consistency beats intensity.
+Choose discipline over delay. Consistency beats intensity.
+Finish what you start. Consistency beats intensity.
+Build momentum. Consistency beats intensity.
+Make progress today. Consistency beats intensity.
+Execute with purpose. Consistency beats intensity.
+Focus on solutions. Consistency beats intensity.
+Own your results. Consistency beats intensity.
+Do the important work. Consistency beats intensity.
+Create value. Consistency beats intensity.
+Stay resilient. Consistency beats intensity.
+Lead with integrity. Consistency beats intensity.
+Keep improving. Consistency beats intensity.
+Think long term. Consistency beats intensity.
+Act with confidence. Consistency beats intensity.
+Be dependable. Consistency beats intensity.
+Learn continuously. Consistency beats intensity.
+Keep your promises. Consistency beats intensity.
+Make every hour count. Consistency beats intensity.
+Outwork yesterday. Consistency beats intensity.
+Start before you're ready. Make today count.
+Every small step builds momentum. Make today count.
+Your future is earned today. Make today count.
+Progress beats perfection. Make today count.
+Believe in the process. Make today count.
+Do what matters most first. Make today count.
+Protect your attention. Make today count.
+One priority at a time. Make today count.
+Clarity creates speed. Make today count.
+Stay on the mission. Make today count.
+Lead by example. Make today count.
+Great leaders finish. Make today count.
+Earn trust daily. Make today count.
+Lift others as you climb. Make today count.
+Character builds influence. Make today count.
+Difficult roads build strong people. Make today count.
+Lean into discomfort. Make today count.
+Obstacles reveal opportunity. Make today count.
+Face the hard thing first. Make today count.
+Growth begins outside your comfort zone. Make today count.
+Good is the enemy of great. Make today count.
+Raise the standard. Make today count.
+Details matter. Make today count.
+Excellence is a habit. Make today count.
+Finish with pride. Make today count.
+Success follows consistency. Make today count.
+Results reward action. Make today count.
+Build daily victories. Make today count.
+Stay committed. Make today count.
+Win today. Make today count.
+Take the next step. Make today count.
+Choose discipline over delay. Make today count.
+Finish what you start. Make today count.
+Build momentum. Make today count.
+Make progress today. Make today count.
+Execute with purpose. Make today count.
+Focus on solutions. Make today count.
+Own your results. Make today count.
+Do the important work. Make today count.
+Create value. Make today count.
+Stay resilient. Make today count.
+Lead with integrity. Make today count.
+Keep improving. Make today count.
+Think long term. Make today count.
+Act with confidence. Make today count.
+Be dependable. Make today count.
+Learn continuously. Make today count.
+Keep your promises. Make today count.
+Make every hour count. Make today count.
+Outwork yesterday. Make today count.
+Start before you're ready. Excellence begins with action.
+Every small step builds momentum. Excellence begins with action.
+Your future is earned today. Excellence begins with action.
+Progress beats perfection. Excellence begins with action.
+Believe in the process. Excellence begins with action.
+Do what matters most first. Excellence begins with action.
+Protect your attention. Excellence begins with action.
+One priority at a time. Excellence begins with action.
+Clarity creates speed. Excellence begins with action.
+Stay on the mission. Excellence begins with action.
+Lead by example. Excellence begins with action.
+Great leaders finish. Excellence begins with action.
+Earn trust daily. Excellence begins with action.
+Lift others as you climb. Excellence begins with action.
+Character builds influence. Excellence begins with action.
+Difficult roads build strong people. Excellence begins with action.
+Lean into discomfort. Excellence begins with action.
+Obstacles reveal opportunity. Excellence begins with action.
+Face the hard thing first. Excellence begins with action.
+Growth begins outside your comfort zone. Excellence begins with action.
+Good is the enemy of great. Excellence begins with action.
+Raise the standard. Excellence begins with action.
+Details matter. Excellence begins with action.
+Excellence is a habit. Excellence begins with action.
+Finish with pride. Excellence begins with action.
+Success follows consistency. Excellence begins with action.
+Results reward action. Excellence begins with action.
+Build daily victories. Excellence begins with action.
+Stay committed. Excellence begins with action.
+Win today. Excellence begins with action.
+Take the next step. Excellence begins with action.
+Choose discipline over delay. Excellence begins with action.
+Finish what you start. Excellence begins with action.
+Build momentum. Excellence begins with action.
+Make progress today. Excellence begins with action.
+Execute with purpose. Excellence begins with action.
+Focus on solutions. Excellence begins with action.
+Own your results. Excellence begins with action.
+Do the important work. Excellence begins with action.
+Create value. Excellence begins with action.
+Stay resilient. Excellence begins with action.
+Lead with integrity. Excellence begins with action.
+Keep improving. Excellence begins with action.
+Think long term. Excellence begins with action.
+Act with confidence. Excellence begins with action.
+Be dependable. Excellence begins with action.
+Learn continuously. Excellence begins with action.
+Keep your promises. Excellence begins with action.
+Make every hour count. Excellence begins with action.
+Outwork yesterday. Excellence begins with action.
+Start before you're ready. Never stop growing.
+Every small step builds momentum. Never stop growing.
+Your future is earned today. Never stop growing.
+Progress beats perfection. Never stop growing.
+Believe in the process. Never stop growing.
+Do what matters most first. Never stop growing.
+Protect your attention. Never stop growing.
+One priority at a time. Never stop growing.
+Clarity creates speed. Never stop growing.
+Stay on the mission. Never stop growing.
+Lead by example. Never stop growing.
+Great leaders finish. Never stop growing.
+Earn trust daily. Never stop growing.
+Lift others as you climb. Never stop growing.
+Character builds influence. Never stop growing.
+Difficult roads build strong people. Never stop growing.
+Lean into discomfort. Never stop growing.
+Obstacles reveal opportunity. Never stop growing.
+Face the hard thing first. Never stop growing.
+Growth begins outside your comfort zone. Never stop growing.
+Good is the enemy of great. Never stop growing.
+Raise the standard. Never stop growing.
+Details matter. Never stop growing.
+Excellence is a habit. Never stop growing.
+Finish with pride. Never stop growing.
+Success follows consistency. Never stop growing.
+Results reward action. Never stop growing.
+Build daily victories. Never stop growing.
+Stay committed. Never stop growing.
+Win today. Never stop growing.
+Take the next step. Never stop growing.
+Choose discipline over delay. Never stop growing.
+Finish what you start. Never stop growing.
+Build momentum. Never stop growing.
+Make progress today. Never stop growing.
+Execute with purpose. Never stop growing.
+Focus on solutions. Never stop growing.
+Own your results. Never stop growing.
+Do the important work. Never stop growing.
+Create value. Never stop growing.
+Stay resilient. Never stop growing.
+Lead with integrity. Never stop growing.
+Keep improving. Never stop growing.
+Think long term. Never stop growing.
+Act with confidence. Never stop growing.
+Be dependable. Never stop growing.
+Learn continuously. Never stop growing.
+Keep your promises. Never stop growing.
+Make every hour count. Never stop growing.
+Outwork yesterday. Never stop growing.

@@ -234,6 +234,7 @@
   .inv-text{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:13.5px;font-family:inherit;line-height:1.5;outline:none;resize:vertical;color:var(--ink);}
   .inv-text:focus{border-color:var(--accent);}
   .inv-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .inspire-quote{font-family:var(--display);font-size:22px;line-height:1.45;color:var(--ink);text-align:center;padding:24px 14px 6px;font-weight:500;}
 
   /* login screen */
   .login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(1200px 600px at 50% -10%, #ecedfb, var(--canvas));}
@@ -376,6 +377,7 @@
     <ul class="board-list" id="boardList"></ul>
     <button class="add-board" id="addBoard">＋ New board</button>
     <button class="add-board" id="peopleBtn" style="margin-top:0;">👥 People directory</button>
+    <button class="add-board" id="inspireBtn" style="margin-top:0;">✨ Get Inspiration</button>
     <div class="sidebar-foot">
       <div class="me-row">
         <span class="avatar" id="meAvatar" style="margin:0"></span>
@@ -1101,6 +1103,30 @@ Your boards appear automatically once you're signed in.`;
     ta.remove();
   }
 
+  let quotesCache=null;
+  async function loadQuotes(){
+    if(quotesCache) return quotesCache;
+    try{
+      const res=await fetch("quotes.txt", {cache:"no-store"});
+      if(!res.ok) throw new Error("no file");
+      const text=await res.text();
+      quotesCache=text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l && !l.startsWith("#"));
+    }catch(_){ quotesCache=[]; }
+    return quotesCache;
+  }
+  async function openInspiration(){
+    const list=await loadQuotes();
+    const { body }=modal(h=>h.innerHTML=`<h3>✨ Inspiration</h3>`,{wide:true});
+    function show(){
+      body.innerHTML="";
+      if(!list.length){ const e=document.createElement("div"); e.className="td-empty"; e.style.padding="22px 0"; e.innerHTML="No sayings found yet. Add a <b>quotes.txt</b> file to the site — one saying per line — and they'll show up here."; body.appendChild(e); return; }
+      const q=list[Math.floor(Math.random()*list.length)];
+      const quote=document.createElement("div"); quote.className="inspire-quote"; quote.textContent=q; body.appendChild(quote);
+      const again=document.createElement("button"); again.className="btn btn-primary"; again.style.marginTop="18px"; again.textContent="Another one ✨"; again.onclick=show; body.appendChild(again);
+    }
+    show();
+  }
+
   function openDirectory(){
     const { body }=modal(h=>h.innerHTML=`<h3>People directory</h3><p>Your shared list of people. Add someone once here, then quickly add them to any board. Editing requires admin access on a board.</p>`,{wide:true});
     (function draw(){
@@ -1564,6 +1590,7 @@ Your boards appear automatically once you're signed in.`;
   };
   document.getElementById("signOutBtn").onclick=async()=>{ if(sb) await sb.auth.signOut(); location.reload(); };
   document.getElementById("peopleBtn").onclick=openDirectory;
+  document.getElementById("inspireBtn").onclick=openInspiration;
 
   /* ---- template persistence ---- */
   async function pushTemplate(tpl){ if(!sb) return; const { error } = await sb.from("templates").upsert({ id:tpl.id, name:tpl.name, data:{color:tpl.color, tasks:tpl.tasks, boardId:tpl.boardId} }, { onConflict:"id" }); if(error) console.warn("template:", error.message); }
