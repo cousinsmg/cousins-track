@@ -430,7 +430,7 @@
   const sb = configured ? supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_PUBLISHABLE_KEY) : null;
 
   /* ---- signed-in identity ---- */
-  let me = { email:"", name:"", color:PALETTE[0] };
+  let me = { id:"", email:"", name:"", color:PALETTE[0] };
   function meName(){ return me.name || me.email; }
   function colorForEmail(email){ let h=0; for(let i=0;i<email.length;i++) h=(h*31+email.charCodeAt(i))>>>0; return PALETTE[h%PALETTE.length]; }
   function nameFromEmail(email){ const s=(email||"").split("@")[0].replace(/[._-]+/g," "); return s.replace(/\b\w/g,c=>c.toUpperCase()).trim()||email; }
@@ -1414,7 +1414,7 @@ Your boards appear automatically once you're signed in.`;
       });
       return {name:t.name, recurrence:t.recurrence?{...t.recurrence}:null, fields};
     });
-    return {id:uid("tpl"), name:name||g.name, color:g.color, tasks};
+    return {id:uid("tpl"), name:name||g.name, color:g.color, tasks, boardId:b.id};
   }
   function applyTemplate(b,tpl){
     const g={id:uid("g"), name:tpl.name, color:tpl.color||PALETTE[b.groups.length%PALETTE.length], collapsed:false, tasks:[]};
@@ -1433,19 +1433,26 @@ Your boards appear automatically once you're signed in.`;
   }
   function openTemplates(){
     const b=board();
-    const {body}=modal(h=>h.innerHTML=`<h3>Templates</h3><p>Reusable groups. Save any group as a template from its ⋯ menu, then drop a fresh copy into this board.</p>`,{wide:true});
+    const {body}=modal(h=>h.innerHTML=`<h3>Templates · ${escapeHtml(b.name)}</h3><p>Reusable groups for this board. Save any group as a template from its ⋯ menu, then drop a fresh copy back into this board.</p>`,{wide:true});
     (function draw(){
       body.innerHTML="";
-      if(!state.templates.length){ const e=document.createElement("div"); e.className="td-empty"; e.style.padding="20px 0"; e.textContent="No templates yet. Open a group's ⋯ menu and choose “Save as template”."; body.appendChild(e); return; }
-      state.templates.forEach(tpl=>{
+      const list=state.templates.filter(tpl=> !tpl.boardId || tpl.boardId===b.id);
+      if(!list.length){ const e=document.createElement("div"); e.className="td-empty"; e.style.padding="20px 0"; e.textContent="No templates for this board yet. Open a group's ⋯ menu and choose “Save as template”."; body.appendChild(e); return; }
+      list.forEach(tpl=>{
+        const mine = !tpl.owner || tpl.owner===me.id;
+        const legacy = !tpl.boardId;
         const row=document.createElement("div"); row.className="tpl-row";
         row.innerHTML=`<span class="tpl-dot" style="background:${tpl.color||'#5b5bd6'}"></span>
-          <div class="tpl-main"><div class="tpl-name">${escapeHtml(tpl.name)}</div><div class="tpl-sub">${tpl.tasks.length} ${tpl.tasks.length===1?"task":"tasks"}</div></div>`;
+          <div class="tpl-main"><div class="tpl-name">${escapeHtml(tpl.name)}</div><div class="tpl-sub">${tpl.tasks.length} ${tpl.tasks.length===1?"task":"tasks"}${mine?"":" · shared"}${legacy?" · any board":""}</div></div>`;
         const use=document.createElement("button"); use.className="btn btn-primary"; use.style.padding="7px 12px"; use.textContent="Add to board";
         use.onclick=()=>{ applyTemplate(b,tpl); use.textContent="Added ✓"; setTimeout(()=>use.textContent="Add to board",1200); };
-        const del=document.createElement("button"); del.className="edit-del"; del.textContent="✕"; del.title="Delete template";
-        del.onclick=()=>{ if(confirm(`Delete template “${tpl.name}”?`)){ state.templates=state.templates.filter(x=>x.id!==tpl.id); deleteTemplateRow(tpl.id); draw(); } };
-        row.appendChild(use); row.appendChild(del); body.appendChild(row);
+        row.appendChild(use);
+        if(mine){
+          const del=document.createElement("button"); del.className="edit-del"; del.textContent="✕"; del.title="Delete template";
+          del.onclick=()=>{ if(confirm(`Delete template “${tpl.name}”?`)){ state.templates=state.templates.filter(x=>x.id!==tpl.id); deleteTemplateRow(tpl.id); draw(); } };
+          row.appendChild(del);
+        }
+        body.appendChild(row);
       });
     })();
   }
@@ -1531,7 +1538,7 @@ Your boards appear automatically once you're signed in.`;
   document.getElementById("peopleBtn").onclick=openDirectory;
 
   /* ---- template persistence ---- */
-  async function pushTemplate(tpl){ if(!sb) return; const { error } = await sb.from("templates").upsert({ id:tpl.id, name:tpl.name, data:{color:tpl.color, tasks:tpl.tasks} }, { onConflict:"id" }); if(error) console.warn("template:", error.message); }
+  async function pushTemplate(tpl){ if(!sb) return; const { error } = await sb.from("templates").upsert({ id:tpl.id, name:tpl.name, data:{color:tpl.color, tasks:tpl.tasks, boardId:tpl.boardId} }, { onConflict:"id" }); if(error) console.warn("template:", error.message); }
   async function upsertDirectory(person){ if(!sb) return; const { error } = await sb.from("directory").upsert({ email:person.email.toLowerCase(), name:person.name, color:person.color }, { onConflict:"email" }); if(error) console.warn("directory:", error.message); }
   async function deleteDirectoryRow(email){ if(!sb) return; await sb.from("directory").delete().eq("email", email.toLowerCase()); }
   function dirHas(email){ return state.directory.some(d=>d.email.toLowerCase()===String(email).toLowerCase()); }
@@ -1563,8 +1570,8 @@ Your boards appear automatically once you're signed in.`;
       b.groups.forEach(g=>(g.tasks||[]).forEach(t=>{ t.comments=t.comments||[]; t.attachments=t.attachments||[]; t.activity=t.activity||[]; if(t.recurrence===undefined)t.recurrence=null; if(t.archived===undefined)t.archived=false; }));
       return b;
     });
-    const { data:tpls } = await sb.from("templates").select("id,name,data");
-    state.templates=(tpls||[]).map(r=>({ id:r.id, name:r.name, color:(r.data||{}).color, tasks:(r.data||{}).tasks||[] }));
+    const { data:tpls } = await sb.from("templates").select("id,name,data,owner");
+    state.templates=(tpls||[]).map(r=>({ id:r.id, name:r.name, color:(r.data||{}).color, tasks:(r.data||{}).tasks||[], boardId:(r.data||{}).boardId, owner:r.owner }));
     const { data:dir } = await sb.from("directory").select("email,name,color");
     state.directory=(dir||[]).map(d=>({ email:String(d.email).toLowerCase(), name:d.name||nameFromEmail(d.email), color:d.color||colorForEmail(d.email) }))
       .sort((a,b)=>a.name.localeCompare(b.name));
@@ -1572,6 +1579,7 @@ Your boards appear automatically once you're signed in.`;
   }
 
   async function enter(session){
+    me.id=session.user.id;
     me.email=(session.user.email||"").toLowerCase();
     me.name=nameFromEmail(me.email);
     me.color=colorForEmail(me.email);
