@@ -655,7 +655,7 @@
     }
     const editable=canEdit(b);
     const admin=isAdmin(b);
-    const overdueCount=accessibleBoards().reduce((n,bd)=>n+bd.groups.reduce((m,g)=>m+g.tasks.filter(t=>taskOverdueDate(bd,t)).length,0),0);
+    const overdueCount=accessibleBoards().reduce((n,bd)=>n+bd.groups.reduce((m,g)=>m+g.tasks.filter(t=>taskOverdueDate(bd,t)&&taskAssignedTo(bd,t,me.email)).length,0),0);
 
     main.innerHTML=`
       <div class="board-head">
@@ -1187,12 +1187,12 @@ Your boards appear automatically once you're signed in.`;
   }
 
   function openOverdue(){
-    let scope="all";
+    let scope="mine";
     const {body,foot,sp}=modal(h=>h.innerHTML=`<h3>Overdue tasks</h3><p>Past their due date and not marked done, across boards you can access.</p>`,{wide:true,doneLabel:"Close"});
     const seg=document.createElement("div"); seg.className="seg";
-    const bAll=document.createElement("button"); bAll.textContent="Everyone";
     const bMine=document.createElement("button"); bMine.textContent="Assigned to me";
-    seg.appendChild(bAll); seg.appendChild(bMine);
+    const bAll=document.createElement("button"); bAll.textContent="Everyone";
+    seg.appendChild(bMine); seg.appendChild(bAll);
     foot.insertBefore(seg, sp);
 
     function draw(){
