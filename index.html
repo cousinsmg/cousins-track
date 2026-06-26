@@ -677,14 +677,12 @@
         </div>
         <div class="toolbar">
           ${editable?`<button class="btn btn-primary" id="addGroupTop">＋ Add group</button>`:""}
-          ${editable?`<button class="btn btn-soft${selectMode?" toggled":""}" id="selectBtn">☑ Select</button>`:""}
-          <button class="btn btn-soft${showArchived?" toggled":""}" id="archivedBtn">🗄 ${showArchived?"Hide archived":"Show archived"}</button>
           <button class="btn btn-soft" id="collapseAllBtn">${b.groups.length>0 && b.groups.every(g=>isCollapsed(g))?"⊞ Expand all":"⊟ Collapse all"}</button>
           <button class="btn btn-warn" id="overdueBtn">⚠ Overdue ${overdueCount?`<span class="badge">${overdueCount}</span>`:""}</button>
           <button class="btn btn-soft" id="workloadBtn">👥 Workload</button>
           ${editable?`<button class="btn btn-soft" id="templatesBtn">▦ Templates</button>`:""}
           ${editable?`<button class="btn btn-soft" id="manageStatuses">◐ Statuses</button>`:""}
-          ${admin?`<button class="btn btn-soft" id="boardSettings">⚙ Settings</button>`:""}
+          <button class="btn btn-soft${(selectMode||showArchived)?" toggled":""}" id="settingsMenuBtn">⚙ Settings ▾</button>
           <div class="search">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
             <input id="searchInput" placeholder="Search tasks…" value="${escapeAttr(searchTerm)}">
@@ -700,9 +698,7 @@
       document.getElementById("addGroupTop").onclick=addGroup;
       document.getElementById("manageStatuses").onclick=openStatusModal;
       document.getElementById("templatesBtn").onclick=openTemplates;
-      document.getElementById("selectBtn").onclick=()=>{ selectMode=!selectMode; if(!selectMode) selected.clear(); renderMain(); };
     }
-    document.getElementById("archivedBtn").onclick=()=>{ showArchived=!showArchived; renderMain(); };
     document.getElementById("collapseAllBtn").onclick=()=>{
       const b=board();
       const allCollapsed = b.groups.length>0 && b.groups.every(g=>isCollapsed(g));
@@ -710,7 +706,13 @@
       else b.groups.forEach(g=>collapsedSet.add(g.id));
       saveCollapsed(); renderMain();
     };
-    if(admin) document.getElementById("boardSettings").onclick=openSettings;
+    document.getElementById("settingsMenuBtn").onclick=(e)=>{
+      popover(e.currentTarget,(pop)=>{
+        if(editable) pop.appendChild(mkItem((selectMode?"✓ ":"")+"☑ Select tasks",()=>{ closePop(); selectMode=!selectMode; if(!selectMode) selected.clear(); renderMain(); }));
+        pop.appendChild(mkItem((showArchived?"✓ ":"")+"🗄 Show archived tasks",()=>{ closePop(); showArchived=!showArchived; renderMain(); }));
+        if(admin){ pop.appendChild(sep()); pop.appendChild(mkItem("👥 Members & access",()=>{ closePop(); openSettings(); })); }
+      });
+    };
     document.getElementById("overdueBtn").onclick=openOverdue;
     document.getElementById("workloadBtn").onclick=openWorkload;
     const si=document.getElementById("searchInput"); si.oninput=()=>{ searchTerm=si.value; renderBody(); };
