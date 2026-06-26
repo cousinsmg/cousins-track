@@ -369,6 +369,7 @@
     <div class="nav-label">Boards</div>
     <ul class="board-list" id="boardList"></ul>
     <button class="add-board" id="addBoard">＋ New board</button>
+    <button class="add-board" id="peopleBtn" style="margin-top:0;">👥 People directory</button>
     <div class="sidebar-foot">
       <div class="me-row">
         <span class="avatar" id="meAvatar" style="margin:0"></span>
@@ -435,7 +436,7 @@
   function nameFromEmail(email){ const s=(email||"").split("@")[0].replace(/[._-]+/g," "); return s.replace(/\b\w/g,c=>c.toUpperCase()).trim()||email; }
 
   /* ---- in-memory state (loaded from Supabase) ---- */
-  let state = { boards:[], activeBoardId:null, templates:[] };
+  let state = { boards:[], activeBoardId:null, templates:[], directory:[] };
   let searchTerm="";
   let showArchived=false, selectMode=false, selected=new Set();
   // Group collapse is a personal view preference (per user, this browser) — never synced to others.
@@ -1029,16 +1030,20 @@
 
   function inviteMember(b,p){
     const url=location.origin+location.pathname;
-    const subj=`You've been added to “${b.name}” on Cousins Track`;
+    const hasBoard = b && b.id;
+    const subj = hasBoard ? `You've been added to “${b.name}” on Cousins Track` : `You've been invited to Cousins Track`;
+    const intro = hasBoard
+      ? `You've been given ${p.role} access to the “${b.name}” board on Cousins Track.`
+      : `You've been added to Cousins Track, our team's task tracker.`;
     const body=`Hi ${p.name||""},
 
-You've been given ${p.role} access to the “${b.name}” board on Cousins Track.
+${intro}
 
-To open it:
+To sign in:
 1. Go to ${url}
 2. Sign in with THIS email address (${p.id}) — click “Continue with Google”, or enter your email for a one-time magic link.
 
-The board appears automatically once you're signed in.`;
+Your boards appear automatically once you're signed in.`;
     const { body:mb }=modal(h=>h.innerHTML=`<h3>Invite ${escapeHtml(p.name||p.id)}</h3><p>Copy this message into an email or chat, or open it straight in Gmail.</p>`,{wide:true});
     mb.innerHTML="";
     const meta=document.createElement("div"); meta.className="inv-meta";
@@ -1066,6 +1071,50 @@ The board appears automatically once you're signed in.`;
     const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select();
     try{ document.execCommand("copy"); done(); }catch(_){ alert("Copy failed — select the text and copy manually."); }
     ta.remove();
+  }
+
+  function openDirectory(){
+    const { body }=modal(h=>h.innerHTML=`<h3>People directory</h3><p>Your shared list of people. Add someone once here, then quickly add them to any board. Editing requires admin access on a board.</p>`,{wide:true});
+    (function draw(){
+      body.innerHTML="";
+      if(!state.directory.length){ const e=document.createElement("div"); e.className="td-empty"; e.style.padding="14px 0"; e.textContent="No one here yet. Add people below, or import everyone already on your boards."; body.appendChild(e); }
+      state.directory.forEach(d=>{
+        const row=document.createElement("div"); row.className="edit-row member-row";
+        row.innerHTML=`<input type="color" value="${d.color}">
+          <div class="mem-fields"><input type="text" class="mem-name" value="${escapeAttr(d.name)}" placeholder="Name"><input type="email" class="mem-email" value="${escapeAttr(d.email)}" readonly></div>
+          <button class="mem-invite" title="Email sign-in instructions">✉ Invite</button>
+          <button class="edit-del" title="Remove from directory">✕</button>`;
+        const col=row.querySelector('input[type=color]'); const nm=row.querySelector('.mem-name');
+        col.onchange=()=>{ d.color=col.value; upsertDirectory(d); };
+        nm.onchange=()=>{ d.name=nm.value.trim()||nameFromEmail(d.email); upsertDirectory(d); };
+        row.querySelector(".mem-invite").onclick=()=>inviteMember(null, {id:d.email,name:d.name});
+        row.querySelector(".edit-del").onclick=()=>{ if(confirm(`Remove ${d.name} from the directory?\n\n(They stay on any boards they're already a member of — this only removes them from the quick-add list.)`)){ state.directory=state.directory.filter(x=>x.email!==d.email); deleteDirectoryRow(d.email); draw(); } };
+        body.appendChild(row);
+      });
+      const add=document.createElement("button"); add.className="add-line"; add.textContent="＋ Add person";
+      add.onclick=()=>{ const email=(prompt("Person's email:")||"").trim().toLowerCase(); if(!email) return;
+        if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ alert("Enter a valid email."); return; }
+        if(dirHas(email)){ alert("That person is already in the directory."); return; }
+        const name=(prompt("Their name:", nameFromEmail(email))||nameFromEmail(email)).trim();
+        dirAdd({email,name,color:colorForEmail(email)}); draw();
+        if(confirm("Added. Email them sign-in instructions now?")) inviteMember(null,{id:email,name});
+      };
+      body.appendChild(add);
+      const imp=document.createElement("button"); imp.className="add-line"; imp.style.marginTop="6px"; imp.textContent="⤓ Import everyone already on my boards";
+      imp.onclick=()=>{ let n=0; accessibleBoards().forEach(b=>b.people.forEach(p=>{ if(!dirHas(p.id)){ dirAdd({email:p.id,name:p.name,color:p.color}); n++; } })); draw();
+        alert(n?`Added ${n} ${n===1?"person":"people"} to the directory.`:"Everyone on your boards is already in the directory."); };
+      body.appendChild(imp);
+    })();
+  }
+  function addNewPersonToBoard(b, redraw){
+    const email=(prompt("New person's email:")||"").trim().toLowerCase(); if(!email) return;
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ alert("Enter a valid email."); return; }
+    const name=(prompt("Their name:", nameFromEmail(email))||nameFromEmail(email)).trim();
+    const color=colorForEmail(email);
+    if(!dirHas(email)) dirAdd({email,name,color});
+    if(!b.people.some(p=>p.id.toLowerCase()===email)){ b.people.push({id:email,name,color,role:"editor"}); syncMembers(b); }
+    redraw&&redraw(); renderBody();
+    if(confirm(`Added ${email}. Email them sign-in instructions now?`)) inviteMember(b,{id:email,name,role:"editor"});
   }
 
   function openSettings(){
@@ -1115,14 +1164,19 @@ The board appears automatically once you're signed in.`;
       });
       const add=document.createElement("button"); add.className="add-line"; add.textContent="＋ Add member";
       add.onclick=()=>{
-        const email=(prompt("Member's email address:")||"").trim().toLowerCase();
-        if(!email) return;
-        if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ alert("Enter a valid email."); return; }
-        if(b.people.some(x=>x.id.toLowerCase()===email)){ alert("That email is already a member."); return; }
-        b.people.push({id:email, name:nameFromEmail(email), color:colorForEmail(email), role:"editor"});
-        syncMembers(b); draw(); renderBody();
-        const newp=b.people[b.people.length-1];
-        if(confirm(`Added ${email}. Email them sign-in instructions now?`)) inviteMember(b,newp);
+        const avail=state.directory.filter(d=> !b.people.some(p=>p.id.toLowerCase()===d.email.toLowerCase()));
+        popover(add,(pop)=>{
+          pop.appendChild(title("Add from your people"));
+          if(!avail.length){ const e2=document.createElement("div"); e2.style.cssText="padding:6px 12px 8px;color:var(--ink-soft);font-size:12.5px;max-width:240px;line-height:1.4;"; e2.textContent="Everyone in your directory is already on this board. Add someone new below."; pop.appendChild(e2); }
+          avail.forEach(d=>{ const it=document.createElement("button"); it.className="pop-item"; it.style.alignItems="center";
+            it.innerHTML=`<span class="avatar" style="background:${d.color};margin:0 8px 0 0;width:24px;height:24px;border:none;font-size:10px;color:#fff;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex:0 0 auto;">${initials(d.name)}</span><span style="flex:1;line-height:1.3;text-align:left">${escapeHtml(d.name)}<br><span style="font-size:11px;color:var(--ink-soft)">${escapeHtml(d.email)}</span></span>`;
+            it.onclick=()=>{ b.people.push({id:d.email.toLowerCase(), name:d.name, color:d.color, role:"editor"}); syncMembers(b); closePop(); draw(); renderBody(); };
+            pop.appendChild(it);
+          });
+          pop.appendChild(sep());
+          pop.appendChild(mkItem("＋ Add someone new…",()=>{ closePop(); addNewPersonToBoard(b, draw); }));
+          pop.appendChild(mkItem("⚙ Manage directory…",()=>{ closePop(); openDirectory(); }));
+        });
       };
       body.appendChild(add);
 
@@ -1474,9 +1528,14 @@ The board appears automatically once you're signed in.`;
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="cousins-track-backup.json"; a.click(); URL.revokeObjectURL(a.href);
   };
   document.getElementById("signOutBtn").onclick=async()=>{ if(sb) await sb.auth.signOut(); location.reload(); };
+  document.getElementById("peopleBtn").onclick=openDirectory;
 
   /* ---- template persistence ---- */
   async function pushTemplate(tpl){ if(!sb) return; const { error } = await sb.from("templates").upsert({ id:tpl.id, name:tpl.name, data:{color:tpl.color, tasks:tpl.tasks} }, { onConflict:"id" }); if(error) console.warn("template:", error.message); }
+  async function upsertDirectory(person){ if(!sb) return; const { error } = await sb.from("directory").upsert({ email:person.email.toLowerCase(), name:person.name, color:person.color }, { onConflict:"email" }); if(error) console.warn("directory:", error.message); }
+  async function deleteDirectoryRow(email){ if(!sb) return; await sb.from("directory").delete().eq("email", email.toLowerCase()); }
+  function dirHas(email){ return state.directory.some(d=>d.email.toLowerCase()===String(email).toLowerCase()); }
+  function dirAdd(person){ if(!dirHas(person.email)) state.directory.push(person); state.directory.sort((a,b)=>a.name.localeCompare(b.name)); upsertDirectory(person); }
   async function deleteTemplateRow(id){ if(!sb) return; await sb.from("templates").delete().eq("id", id); }
 
   /* ---- delete board (also drops its rows) ---- */
@@ -1506,6 +1565,9 @@ The board appears automatically once you're signed in.`;
     });
     const { data:tpls } = await sb.from("templates").select("id,name,data");
     state.templates=(tpls||[]).map(r=>({ id:r.id, name:r.name, color:(r.data||{}).color, tasks:(r.data||{}).tasks||[] }));
+    const { data:dir } = await sb.from("directory").select("email,name,color");
+    state.directory=(dir||[]).map(d=>({ email:String(d.email).toLowerCase(), name:d.name||nameFromEmail(d.email), color:d.color||colorForEmail(d.email) }))
+      .sort((a,b)=>a.name.localeCompare(b.name));
     ensureAccessible();
   }
 
