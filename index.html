@@ -423,6 +423,7 @@
      ========================================================= */
 
   const PALETTE = ["#5b5bd6","#00c875","#fdab3d","#e2445c","#0086c0","#a25ddc","#ff7575","#579bfc","#037f4c","#bb3354","#9aadbd","#ff158a"];
+  const GROUP_STRIPES = ["#1A365D","#059669"]; // navy / emerald — groups alternate by position
   const STATUS_DEFAULTS = [
     {id:"s_done", label:"Done", color:"#00c875"},
     {id:"s_work", label:"Working on it", color:"#fdab3d"},
@@ -721,14 +722,14 @@
     const body=document.getElementById("boardBody"); body.innerHTML="";
     const term=searchTerm.trim().toLowerCase();
 
-    b.groups.forEach(g=>{
+    b.groups.forEach((g,idx)=>{
       let tasks = g.tasks.filter(t=> showArchived ? true : !t.archived);
       if(term) tasks = tasks.filter(t=>t.name.toLowerCase().includes(term));
       if(term && tasks.length===0) return;
       const activeCount=g.tasks.filter(t=>!t.archived).length;
       const archivedCount=g.tasks.length-activeCount;
 
-      const wrap=document.createElement("div"); wrap.className="group"; wrap.style.setProperty("--grp",g.color);
+      const wrap=document.createElement("div"); wrap.className="group"; wrap.style.setProperty("--grp", GROUP_STRIPES[idx % GROUP_STRIPES.length]);
       const head=document.createElement("div"); head.className="group-head";
       head.innerHTML=`
         <button class="caret ${isCollapsed(g)?"collapsed":""}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></button>
@@ -994,12 +995,7 @@
         const name=prompt("Template name:", g.name); if(name===null) return;
         const tpl=groupToTemplate(b,g,name.trim()||g.name); state.templates.push(tpl); pushTemplate(tpl);
         alert(`Saved “${name.trim()||g.name}” as a template. Reuse it from the Templates button.`); }));
-      pop.appendChild(title("Color"));
-      const sw=document.createElement("div"); sw.style.cssText="display:flex;flex-wrap:wrap;gap:6px;padding:4px 10px 8px;";
-      PALETTE.forEach(c=>{ const dot=document.createElement("button");
-        dot.style.cssText=`width:20px;height:20px;border-radius:6px;border:2px solid ${g.color===c?'var(--ink)':'transparent'};background:${c};cursor:pointer;`;
-        dot.onclick=()=>{ g.color=c; save(); renderBody(); closePop(); }; sw.appendChild(dot); });
-      pop.appendChild(sw); pop.appendChild(sep());
+      pop.appendChild(sep());
       const del=mkItem("Delete group",()=>{ closePop(); if(confirm("Delete group \""+g.name+"\" and its tasks?")){ b.groups=b.groups.filter(x=>x.id!==g.id); save(); renderBody(); }});
       del.classList.add("danger"); pop.appendChild(del);
     });
