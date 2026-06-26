@@ -678,6 +678,7 @@
           ${editable?`<button class="btn btn-primary" id="addGroupTop">＋ Add group</button>`:""}
           ${editable?`<button class="btn btn-soft${selectMode?" toggled":""}" id="selectBtn">☑ Select</button>`:""}
           <button class="btn btn-soft${showArchived?" toggled":""}" id="archivedBtn">🗄 ${showArchived?"Hide archived":"Show archived"}</button>
+          <button class="btn btn-soft" id="collapseAllBtn">${b.groups.length>0 && b.groups.every(g=>isCollapsed(g))?"⊞ Expand all":"⊟ Collapse all"}</button>
           <button class="btn btn-warn" id="overdueBtn">⚠ Overdue ${overdueCount?`<span class="badge">${overdueCount}</span>`:""}</button>
           <button class="btn btn-soft" id="workloadBtn">👥 Workload</button>
           ${editable?`<button class="btn btn-soft" id="templatesBtn">▦ Templates</button>`:""}
@@ -701,6 +702,13 @@
       document.getElementById("selectBtn").onclick=()=>{ selectMode=!selectMode; if(!selectMode) selected.clear(); renderMain(); };
     }
     document.getElementById("archivedBtn").onclick=()=>{ showArchived=!showArchived; renderMain(); };
+    document.getElementById("collapseAllBtn").onclick=()=>{
+      const b=board();
+      const allCollapsed = b.groups.length>0 && b.groups.every(g=>isCollapsed(g));
+      if(allCollapsed) b.groups.forEach(g=>collapsedSet.delete(g.id));
+      else b.groups.forEach(g=>collapsedSet.add(g.id));
+      saveCollapsed(); renderMain();
+    };
     if(admin) document.getElementById("boardSettings").onclick=openSettings;
     document.getElementById("overdueBtn").onclick=openOverdue;
     document.getElementById("workloadBtn").onclick=openWorkload;
