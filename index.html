@@ -50,6 +50,18 @@
   .nav-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);padding:16px 18px 8px;}
   .board-list{list-style:none;margin:0;padding:0 10px;overflow-y:auto;flex:1;}
   .board-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;margin-bottom:2px;font-weight:500;color:var(--ink);cursor:pointer;border:none;background:none;width:100%;text-align:left;}
+  .folder{list-style:none;margin-top:2px;}
+  .folder-head{display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--ink);font-weight:600;font-size:13.5px;}
+  .folder-head:hover{background:var(--canvas);}
+  .folder-head.fdrop{background:var(--accent-soft);box-shadow:inset 0 0 0 1.5px var(--accent);}
+  .fcaret{font-size:10px;color:var(--ink-soft);transition:transform .15s ease;display:inline-block;}
+  .fcaret.collapsed{transform:rotate(-90deg);}
+  .ficon{font-size:13px;}
+  .fname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .fcount{font-size:11px;color:var(--ink-soft);background:var(--canvas);border-radius:10px;padding:1px 7px;font-weight:600;}
+  .fmenu{color:var(--ink-soft);padding:0 4px;opacity:0;transition:opacity .12s;font-size:15px;}
+  .folder-head:hover .fmenu{opacity:1;}
+  .folder-boards{list-style:none;margin:0 0 2px;padding:0 0 0 14px;border-left:1.5px solid var(--border);margin-left:14px;}
   .board-item:hover{background:var(--canvas);}
   .board-item.active{background:var(--accent-soft);color:var(--accent);font-weight:600;}
   .board-item .grip{color:var(--border-strong);font-size:12px;line-height:1;cursor:grab;opacity:0;transition:opacity .12s;flex:0 0 auto;letter-spacing:-2px;}
@@ -628,6 +640,30 @@
   }
 
   /* ---------- SIDEBAR ---------- */
+  function isFolderCollapsed(name){ return collapsedSet.has("folder:"+name); }
+  function toggleFolder(name){ const k="folder:"+name; if(collapsedSet.has(k)) collapsedSet.delete(k); else collapsedSet.add(k); saveCollapsed(); }
+  function boardItemLi(b){
+    const li=document.createElement("li");
+    li.draggable=true; li.dataset.boardId=b.id;
+    const btn=document.createElement("button");
+    btn.className="board-item"+(b.id===state.activeBoardId?" active":"");
+    const dotColor=(b.groups[0]&&b.groups[0].color)||"#5b5bd6";
+    btn.style.setProperty("--bdot",dotColor);
+    btn.innerHTML=`<span class="grip" title="Drag to reorder / into a folder">⠿</span><span class="dot"></span><span style="flex:1">${escapeHtml(b.name)}</span>`;
+    btn.onclick=()=>{ state.activeBoardId=b.id; save(); renderAll(); };
+    if(isAdmin(b)){
+      const menu=document.createElement("span"); menu.textContent="⋯"; menu.style.cssText="color:var(--ink-soft);padding:0 2px;";
+      menu.onclick=(e)=>{ e.stopPropagation(); boardMenu(menu,b); };
+      btn.appendChild(menu);
+    }
+    li.appendChild(btn);
+    li.addEventListener("dragstart",(e)=>{ dragBoardId=b.id; li.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; try{e.dataTransfer.setData("text/plain",b.id);}catch(_){} });
+    li.addEventListener("dragend",()=>{ dragBoardId=null; li.classList.remove("dragging"); document.querySelectorAll(".drag-over,.fdrop").forEach(x=>x.classList.remove("drag-over","fdrop")); });
+    li.addEventListener("dragover",(e)=>{ if(dragBoardId&&dragBoardId!==b.id){ e.preventDefault(); e.dataTransfer.dropEffect="move"; li.classList.add("drag-over"); } });
+    li.addEventListener("dragleave",()=>li.classList.remove("drag-over"));
+    li.addEventListener("drop",(e)=>{ e.preventDefault(); li.classList.remove("drag-over"); if(dragBoardId){ const bd=state.boards.find(x=>x.id===dragBoardId); if(bd && (bd.folder||"")!==(b.folder||"")){ if(b.folder) bd.folder=b.folder; else delete bd.folder; pushBoard(bd); } moveBoard(dragBoardId,b.id,e); } });
+    return li;
+  }
   function renderSidebar(){
     const ul=document.getElementById("boardList"); ul.innerHTML="";
     const visible=accessibleBoards();
@@ -636,40 +672,54 @@
       li.style.cssText="padding:10px 12px;color:var(--ink-soft);font-size:12.5px;";
       li.textContent="No boards shared with you.";
       ul.appendChild(li);
+    } else {
+      visible.filter(b=>!b.folder).forEach(b=> ul.appendChild(boardItemLi(b)) );
+      const folderNames=[]; visible.forEach(b=>{ if(b.folder && !folderNames.includes(b.folder)) folderNames.push(b.folder); });
+      folderNames.forEach(name=>{
+        const collapsed=isFolderCollapsed(name);
+        const inFolder=visible.filter(b=>b.folder===name);
+        const fli=document.createElement("li"); fli.className="folder";
+        const fhead=document.createElement("div"); fhead.className="folder-head";
+        fhead.innerHTML=`<span class="fcaret ${collapsed?"collapsed":""}">▾</span><span class="ficon">📁</span><span class="fname">${escapeHtml(name)}</span><span class="fcount">${inFolder.length}</span>`;
+        fhead.onclick=(e)=>{ if(e.target.closest(".fmenu")) return; toggleFolder(name); renderSidebar(); };
+        const fmenu=document.createElement("span"); fmenu.className="fmenu"; fmenu.textContent="⋯";
+        fmenu.onclick=(e)=>{ e.stopPropagation(); folderMenu(fmenu,name); };
+        fhead.appendChild(fmenu);
+        fhead.addEventListener("dragover",(e)=>{ if(dragBoardId){ e.preventDefault(); e.dataTransfer.dropEffect="move"; fhead.classList.add("fdrop"); } });
+        fhead.addEventListener("dragleave",()=>fhead.classList.remove("fdrop"));
+        fhead.addEventListener("drop",(e)=>{ e.preventDefault(); fhead.classList.remove("fdrop"); if(dragBoardId){ const bd=state.boards.find(x=>x.id===dragBoardId); if(bd){ bd.folder=name; pushBoard(bd); } dragBoardId=null; renderSidebar(); } });
+        fli.appendChild(fhead);
+        if(!collapsed){ const sub=document.createElement("ul"); sub.className="folder-boards"; inFolder.forEach(b=> sub.appendChild(boardItemLi(b)) ); fli.appendChild(sub); }
+        ul.appendChild(fli);
+      });
     }
-    visible.forEach(b=>{
-      const li=document.createElement("li");
-      li.draggable=true;
-      li.dataset.boardId=b.id;
-      const btn=document.createElement("button");
-      btn.className="board-item"+(b.id===state.activeBoardId?" active":"");
-      const dotColor=(b.groups[0]&&b.groups[0].color)||"#5b5bd6";
-      btn.style.setProperty("--bdot",dotColor);
-      btn.innerHTML=`<span class="grip" title="Drag to reorder">⠿</span><span class="dot"></span><span style="flex:1">${escapeHtml(b.name)}</span>`;
-      btn.onclick=()=>{ state.activeBoardId=b.id; save(); renderAll(); };
-      if(isAdmin(b)){
-        const menu=document.createElement("span"); menu.textContent="⋯"; menu.style.cssText="color:var(--ink-soft);padding:0 2px;";
-        menu.onclick=(e)=>{ e.stopPropagation(); boardMenu(menu,b); };
-        btn.appendChild(menu);
-      }
-      li.appendChild(btn);
-      // drag-to-reorder
-      li.addEventListener("dragstart",(e)=>{ dragBoardId=b.id; li.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; try{e.dataTransfer.setData("text/plain",b.id);}catch(_){} });
-      li.addEventListener("dragend",()=>{ dragBoardId=null; li.classList.remove("dragging"); ul.querySelectorAll(".drag-over").forEach(x=>x.classList.remove("drag-over")); });
-      li.addEventListener("dragover",(e)=>{ if(dragBoardId&&dragBoardId!==b.id){ e.preventDefault(); e.dataTransfer.dropEffect="move"; li.classList.add("drag-over"); } });
-      li.addEventListener("dragleave",()=>li.classList.remove("drag-over"));
-      li.addEventListener("drop",(e)=>{ e.preventDefault(); li.classList.remove("drag-over"); if(dragBoardId) moveBoard(dragBoardId,b.id,e); });
-      ul.appendChild(li);
-    });
-
     const av=document.getElementById("meAvatar"); av.style.background=me.color; av.textContent=initials(meName());
     document.getElementById("meName").textContent=meName();
     document.getElementById("meEmail").textContent=me.email;
+  }
+  function moveToFolder(b){
+    const existing=[...new Set(accessibleBoards().map(x=>x.folder).filter(Boolean))];
+    const hint = existing.length? `\n\nExisting folders: ${existing.join(", ")}`:"";
+    const f=prompt("Move to folder (type a name, or leave blank for none):"+hint, b.folder||"");
+    if(f===null) return;
+    const name=f.trim();
+    if(name) b.folder=name; else delete b.folder;
+    pushBoard(b); renderSidebar();
+  }
+  function folderMenu(anchor,name){
+    popover(anchor,(pop)=>{
+      pop.appendChild(mkItem("Rename folder",()=>{ closePop(); const n=prompt("Folder name:",name); if(n==null) return; const nn=n.trim(); if(!nn) return;
+        accessibleBoards().filter(b=>b.folder===name).forEach(b=>{ b.folder=nn; pushBoard(b); }); renderSidebar(); }));
+      const ung=mkItem("Ungroup boards",()=>{ closePop(); if(confirm(`Remove the “${name}” folder? Its boards stay, just un-foldered.`)){ accessibleBoards().filter(b=>b.folder===name).forEach(b=>{ delete b.folder; pushBoard(b); }); renderSidebar(); }});
+      pop.appendChild(ung);
+    });
   }
   function boardMenu(anchor,b){
     popover(anchor,(pop)=>{
       pop.appendChild(mkItem("Board settings…",()=>{ closePop(); openSettings(); }));
       pop.appendChild(mkItem("Rename board",()=>{ closePop(); const n=prompt("Board name:",b.name); if(n){b.name=n.trim();save();renderAll();}}));
+      pop.appendChild(mkItem(b.folder?"Move to another folder…":"Move to folder…",()=>{ closePop(); moveToFolder(b); }));
+      if(b.folder) pop.appendChild(mkItem("Remove from folder",()=>{ closePop(); delete b.folder; pushBoard(b); renderSidebar(); }));
       pop.appendChild(mkItem("Duplicate board",()=>{ closePop();
         const copy=JSON.parse(JSON.stringify(b)); copy.id=uid("b"); copy.name=b.name+" (copy)";
         copy.groups.forEach(g=>{g.id=uid("g");g.tasks.forEach(t=>t.id=uid("t"));});
