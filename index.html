@@ -1,0 +1,1812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cousins Track</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#5b5bd6">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Tracker">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  /* ============================================================
+     CONFIG — paste your Supabase project values here.
+     Both are safe to ship in a static file: the publishable key
+     is meant for the browser, and Row Level Security protects data.
+     Find these in Supabase: Project Settings → API.
+     ============================================================ */
+  window.CONFIG = {
+    SUPABASE_URL: "https://rsisyznzqosgqgdbjqwl.supabase.co",
+    SUPABASE_PUBLISHABLE_KEY: "sb_publishable_pZldNPTKMoZHQBEcTv6jgA_au8TCQI6"
+  };
+</script>
+<style>
+  :root{
+    --ink:#1b1d28;--ink-soft:#5b5f72;--canvas:#f5f6f8;--surface:#ffffff;
+    --border:#e4e6ec;--border-strong:#d3d6e0;--accent:#5b5bd6;--accent-soft:#ecedfb;
+    --danger:#e2445c;--danger-soft:#fdecef;--warn:#fdab3d;
+    --shadow:0 1px 2px rgba(27,29,40,.06), 0 6px 24px rgba(27,29,40,.06);
+    --radius:10px;--sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;--display:'Space Grotesk',var(--sans);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{font-family:var(--sans);color:var(--ink);background:var(--canvas);font-size:14px;-webkit-font-smoothing:antialiased;display:flex;overflow:hidden;}
+  button{font-family:inherit;cursor:pointer;}
+  input,textarea,select{font-family:inherit;}
+
+  .sidebar{width:252px;flex:0 0 252px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100%;}
+  .brand{display:flex;align-items:center;gap:10px;padding:18px 18px 16px;border-bottom:1px solid var(--border);}
+  .brand .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#8a8aff);display:grid;grid-template-columns:repeat(2,1fr);gap:3px;padding:6px;flex:0 0 auto;}
+  .brand .mark span{background:rgba(255,255,255,.92);border-radius:2px;}
+  .brand h1{font-family:var(--display);font-size:17px;font-weight:700;margin:0;letter-spacing:-.02em;}
+  .nav-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);padding:16px 18px 8px;}
+  .board-list{list-style:none;margin:0;padding:0 10px;overflow-y:auto;flex:1;}
+  .board-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;margin-bottom:2px;font-weight:500;color:var(--ink);cursor:pointer;border:none;background:none;width:100%;text-align:left;}
+  .board-item:hover{background:var(--canvas);}
+  .board-item.active{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+  .board-item .grip{color:var(--border-strong);font-size:12px;line-height:1;cursor:grab;opacity:0;transition:opacity .12s;flex:0 0 auto;letter-spacing:-2px;}
+  .board-item:hover .grip{opacity:1;}
+  .board-list li.dragging .board-item{opacity:.45;}
+  .board-list li.drag-over{position:relative;}
+  .board-list li.drag-over::before{content:"";position:absolute;left:8px;right:8px;top:-2px;height:2px;background:var(--accent);border-radius:2px;}
+  .board-item .dot{width:8px;height:8px;border-radius:50%;background:var(--bdot,var(--accent));flex:0 0 auto;}
+  .add-board{margin:6px 10px 14px;padding:9px 10px;border-radius:8px;border:1px dashed var(--border-strong);background:none;color:var(--ink-soft);font-weight:500;display:flex;align-items:center;gap:8px;width:calc(100% - 20px);}
+  .add-board:hover{border-color:var(--accent);color:var(--accent);}
+  .sidebar-foot{padding:12px 16px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px;}
+  .viewas{display:flex;flex-direction:column;gap:5px;}
+  .viewas label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);}
+  .viewas .picker{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:6px 8px;}
+  .viewas select{border:none;outline:none;background:none;font-weight:600;font-size:13px;color:var(--ink);flex:1;cursor:pointer;}
+  .role-tag{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:20px;}
+  .role-admin{background:var(--accent-soft);color:var(--accent);}
+  .role-editor{background:#e3f6ec;color:#037f4c;}
+  .role-viewer{background:#eef0f4;color:var(--ink-soft);}
+  .io{display:flex;gap:8px;}
+  .ghost{flex:1;padding:8px;border:1px solid var(--border);background:var(--surface);border-radius:8px;color:var(--ink-soft);font-weight:500;font-size:12.5px;}
+  .ghost:hover{border-color:var(--accent);color:var(--accent);}
+
+  .main{flex:1;display:flex;flex-direction:column;height:100%;min-width:0;}
+  .board-head{padding:18px 28px 14px;background:var(--surface);border-bottom:1px solid var(--border);}
+  .board-title-row{display:flex;align-items:flex-start;gap:14px;}
+  .board-title{font-family:var(--display);font-size:23px;font-weight:700;letter-spacing:-.02em;border:none;background:none;color:var(--ink);padding:2px 4px;border-radius:6px;margin:0;width:auto;min-width:120px;flex:0 1 auto;}
+  .board-title:focus{outline:2px solid var(--accent-soft);background:var(--canvas);}
+  .board-title[readonly]{cursor:default;}
+  .board-desc{border:none;background:none;color:var(--ink-soft);font-size:13.5px;padding:2px 4px;border-radius:6px;margin-top:3px;width:100%;max-width:560px;display:block;}
+  .board-desc:focus{outline:2px solid var(--accent-soft);background:var(--canvas);}
+  .board-desc[readonly]{cursor:default;}
+  .toolbar{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:8px;font-weight:600;font-size:13px;border:1px solid transparent;}
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover{background:#4a4ac4;}
+  .btn-soft{background:var(--surface);color:var(--ink);border-color:var(--border);}
+  .btn-soft:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-warn{background:var(--surface);color:var(--ink);border-color:var(--border);}
+  .btn-warn:hover{border-color:var(--danger);color:var(--danger);}
+  .badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:20px;background:var(--danger);color:#fff;font-size:11px;font-weight:700;}
+  .search{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 11px;min-width:170px;}
+  .search input{border:none;outline:none;background:none;font-size:13px;width:100%;color:var(--ink);}
+  .search svg{flex:0 0 auto;color:var(--ink-soft);}
+
+  .board-body{flex:1;overflow:auto;padding:18px 28px 80px;}
+  .group{margin-bottom:26px;}
+  .group-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .caret{border:none;background:none;color:var(--grp,var(--accent));padding:2px;display:flex;transition:transform .15s ease;}
+  .caret.collapsed{transform:rotate(-90deg);}
+  .group-name{font-family:var(--display);font-weight:700;font-size:16px;color:var(--grp,var(--accent));border:none;background:none;padding:2px 5px;border-radius:6px;flex:1 1 auto;min-width:0;width:100%;}
+  .group-name:focus{outline:2px solid var(--accent-soft);background:var(--canvas);}
+  .group-name[readonly]{cursor:default;}
+  .group-count{color:var(--ink-soft);font-size:12.5px;font-weight:500;flex:0 0 auto;white-space:nowrap;}
+  .group-menu-btn{border:none;background:none;color:var(--ink-soft);padding:3px 6px;border-radius:6px;opacity:0;transition:opacity .12s;font-size:16px;line-height:1;}
+  .group-head:hover .group-menu-btn{opacity:1;}
+  .group-menu-btn:hover{background:var(--canvas);color:var(--ink);}
+
+  .table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+  .row{display:flex;align-items:stretch;border-bottom:1px solid var(--border);min-height:42px;}
+  .row:last-child{border-bottom:none;}
+  .row.header{background:#fafbfc;font-size:12px;font-weight:600;color:var(--ink-soft);min-height:38px;}
+  .row.header .cell{text-transform:uppercase;letter-spacing:.04em;}
+  .cell{display:flex;align-items:center;padding:0 12px;border-right:1px solid var(--border);position:relative;}
+  .cell:last-child{border-right:none;}
+  .cell.c-name{flex:1;min-width:240px;gap:10px;}
+  .cell.c-col{width:170px;flex:0 0 170px;justify-content:center;}
+  .cell.c-add{width:46px;flex:0 0 46px;justify-content:center;}
+  .row .grp-accent{width:5px;flex:0 0 5px;background:var(--grp,var(--accent));}
+  .row.header .grp-accent{background:transparent;}
+
+  .task-name{border:none;background:none;font-size:14px;color:var(--ink);width:100%;padding:9px 4px;border-radius:6px;font-weight:500;}
+  .task-name:focus{outline:2px solid var(--accent-soft);background:var(--canvas);}
+  .task-name[readonly]{cursor:default;}
+  .row-check{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border-strong);flex:0 0 auto;background:none;display:flex;align-items:center;justify-content:center;color:#fff;}
+  .row-check.on{background:#00c875;border-color:#00c875;}
+  .row-check:disabled{cursor:default;}
+
+  .status-cell{padding:0;width:170px;flex:0 0 170px;border-right:1px solid var(--border);}
+  .status-pill{width:100%;height:100%;min-height:42px;border:none;color:#fff;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;}
+  .status-pill.empty{background:#eceef3;color:var(--ink-soft);}
+  .status-pill:disabled{cursor:default;}
+
+  .people-cell{width:170px;flex:0 0 170px;justify-content:center;}
+  .avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:11px;border:2px solid var(--surface);margin-left:-6px;flex:0 0 auto;}
+  .avatar:first-child{margin-left:0;}
+  .people-empty{color:var(--ink-soft);font-size:18px;}
+
+  .date-cell input{border:none;background:none;font-size:13px;color:var(--ink);text-align:center;width:100%;padding:9px 2px;color-scheme:light;}
+  .date-cell.overdue input{color:var(--danger);font-weight:600;}
+  .date-cell input[readonly]{cursor:default;}
+  .text-cell input{border:none;background:none;font-size:13px;color:var(--ink);width:100%;padding:9px 4px;text-align:center;}
+  .text-cell input:focus{outline:2px solid var(--accent-soft);border-radius:6px;}
+  .text-cell input[readonly]{cursor:default;}
+
+  .col-head{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;position:relative;}
+  .col-head input{border:none;background:none;font:inherit;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);text-align:center;width:100%;padding:2px;}
+  .col-head input:focus{outline:2px solid var(--accent-soft);border-radius:5px;}
+  .col-del{border:none;background:none;color:var(--ink-soft);opacity:0;font-size:13px;padding:0 2px;}
+  .col-head:hover .col-del{opacity:.7;}
+  .col-del:hover{color:var(--danger);opacity:1;}
+  .add-col-btn{border:none;background:none;color:var(--ink-soft);font-size:18px;padding:4px 8px;border-radius:6px;}
+  .add-col-btn:hover{background:var(--canvas);color:var(--accent);}
+  .col-resize{position:absolute;top:0;right:-4px;width:9px;height:100%;cursor:col-resize;z-index:6;touch-action:none;}
+  .col-resize::after{content:"";position:absolute;top:6px;bottom:6px;right:4px;width:2px;border-radius:2px;background:transparent;}
+  .col-resize:hover::after{background:var(--accent);}
+
+  .add-task{display:flex;align-items:center;gap:10px;padding:10px 12px 10px 17px;color:var(--ink-soft);font-weight:500;background:none;border:none;width:100%;text-align:left;border-top:1px solid var(--border);}
+  .add-task:hover{color:var(--accent);background:#fafbfc;}
+  .add-group{margin-top:6px;padding:9px 14px;border:1px dashed var(--border-strong);background:none;color:var(--ink-soft);font-weight:600;border-radius:8px;display:inline-flex;align-items:center;gap:8px;}
+  .add-group:hover{border-color:var(--accent);color:var(--accent);}
+
+  .pop{position:fixed;z-index:100;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 40px rgba(27,29,40,.16);padding:6px;min-width:180px;}
+  .pop-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;border:none;background:none;width:100%;text-align:left;font-size:13px;font-weight:500;color:var(--ink);}
+  .pop-item:hover{background:var(--canvas);}
+  .pop-item .sw{width:14px;height:14px;border-radius:4px;flex:0 0 auto;}
+  .pop-item.danger{color:var(--danger);}
+  .pop-sep{height:1px;background:var(--border);margin:5px 4px;}
+  .pop-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);padding:7px 10px 4px;}
+
+  .overlay{position:fixed;inset:0;background:rgba(27,29,40,.42);z-index:80;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .modal{background:var(--surface);border-radius:14px;width:100%;max-width:480px;box-shadow:0 24px 70px rgba(27,29,40,.3);overflow:hidden;}
+  .modal.wide{max-width:600px;}
+  .modal-head{padding:20px 22px 14px;border-bottom:1px solid var(--border);}
+  .modal-head h3{margin:0;font-family:var(--display);font-size:18px;font-weight:700;}
+  .td-title{border:none;background:none;font-family:var(--display);font-size:19px;font-weight:700;color:var(--ink);width:100%;padding:3px 5px;margin:-3px -5px 2px;border-radius:7px;outline:none;}
+  .td-title:focus{background:var(--canvas);box-shadow:0 0 0 2px var(--accent-soft);}
+  .td-title[readonly]{cursor:default;}
+  .modal-head p{margin:5px 0 0;color:var(--ink-soft);font-size:13px;}
+  .modal-body{padding:14px 22px;max-height:54vh;overflow-y:auto;}
+  .modal-foot{padding:14px 22px 20px;display:flex;gap:10px;justify-content:flex-end;align-items:center;}
+  .edit-row{display:flex;align-items:center;gap:10px;padding:7px 0;}
+  .edit-row input[type=text]{flex:1;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;}
+  .edit-row input[type=text]:focus{border-color:var(--accent);}
+  .edit-row input[type=color]{width:34px;height:34px;border:1px solid var(--border);border-radius:8px;padding:2px;background:none;cursor:pointer;flex:0 0 auto;}
+  .edit-row select{padding:8px 9px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;background:var(--surface);outline:none;cursor:pointer;}
+  .edit-del{border:none;background:none;color:var(--ink-soft);font-size:17px;padding:4px 8px;border-radius:6px;flex:0 0 auto;}
+  .edit-del:hover{color:var(--danger);background:var(--canvas);}
+  .add-line{margin-top:8px;padding:9px;border:1px dashed var(--border-strong);background:none;border-radius:8px;color:var(--ink-soft);font-weight:600;width:100%;}
+  .add-line:hover{border-color:var(--accent);color:var(--accent);}
+  .note{background:var(--accent-soft);color:#3b3b9c;font-size:12px;border-radius:8px;padding:9px 11px;margin-top:12px;line-height:1.45;}
+
+  .seg{display:inline-flex;background:var(--canvas);border:1px solid var(--border);border-radius:9px;padding:3px;gap:3px;}
+  .seg button{border:none;background:none;padding:6px 13px;border-radius:7px;font-weight:600;font-size:13px;color:var(--ink-soft);}
+  .seg button.on{background:var(--surface);color:var(--accent);box-shadow:var(--shadow);}
+  .od-item{display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:9px;cursor:pointer;border:1px solid transparent;}
+  .od-item:hover{background:var(--canvas);border-color:var(--border);}
+  .od-date{flex:0 0 auto;text-align:center;min-width:52px;}
+  .od-date .d{font-family:var(--display);font-weight:700;font-size:17px;color:var(--danger);line-height:1;}
+  .od-date .m{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--danger);letter-spacing:.05em;}
+  .od-main{flex:1;min-width:0;}
+  .od-main .t{font-weight:600;font-size:13.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .od-main .ctx{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .od-people{display:flex;flex:0 0 auto;}
+  .od-empty{text-align:center;color:var(--ink-soft);padding:34px 10px;}
+  .od-empty .big{font-size:30px;margin-bottom:6px;}
+
+  .empty-state{text-align:center;color:var(--ink-soft);padding:60px 20px;}
+  .empty-state h2{font-family:var(--display);color:var(--ink);margin:0 0 6px;}
+  .locked .lk{font-size:34px;margin-bottom:10px;}
+
+  @media (max-width:720px){
+    .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .2s;z-index:90;box-shadow:var(--shadow);}
+    .sidebar.open{transform:none;}
+    .board-body{padding:14px 14px 80px;}
+    .board-head{padding:16px;}
+    .menu-toggle{display:inline-flex !important;}
+  }
+  /* signed-in user row */
+  .me-row{display:flex;align-items:center;gap:9px;}
+  .me-main{flex:1;min-width:0;}
+  .me-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .me-email{font-size:11px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .member-row .mem-fields{flex:1;display:flex;flex-direction:column;gap:5px;}
+  .member-row .mem-fields input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;outline:none;}
+  .member-row .mem-fields input:focus{border-color:var(--accent);}
+  .member-row .mem-email{color:var(--ink-soft);}
+  .mem-invite{border:1px solid var(--border);background:var(--surface);color:var(--accent);font-weight:600;font-size:12px;padding:7px 10px;border-radius:8px;flex:0 0 auto;white-space:nowrap;}
+  .mem-invite:hover{border-color:var(--accent);background:var(--accent-soft);}
+  .inv-meta{font-size:13px;color:var(--ink-soft);line-height:1.7;margin-bottom:12px;}
+  .inv-meta b{color:var(--ink);}
+  .inv-text{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:13.5px;font-family:inherit;line-height:1.5;outline:none;resize:vertical;color:var(--ink);}
+  .inv-text:focus{border-color:var(--accent);}
+  .inv-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .inspire-quote{font-family:var(--display);font-size:22px;line-height:1.45;color:var(--ink);text-align:center;padding:24px 14px 6px;font-weight:500;}
+  .td-notes{resize:vertical;min-height:64px;line-height:1.5;font-family:inherit;}
+
+  /* login screen */
+  .login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(1200px 600px at 50% -10%, #ecedfb, var(--canvas));}
+  .login-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:0 24px 70px rgba(27,29,40,.12);padding:34px 30px;width:100%;max-width:380px;text-align:center;}
+  .login-brand{display:flex;align-items:center;justify-content:center;gap:11px;margin-bottom:14px;}
+  .login-brand h1{font-family:var(--display);font-size:22px;font-weight:700;margin:0;letter-spacing:-.02em;}
+  .login-brand .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#8a8aff);display:grid;grid-template-columns:repeat(2,1fr);gap:3px;padding:7px;}
+  .login-brand .mark span{background:rgba(255,255,255,.92);border-radius:2px;}
+  .login-sub{color:var(--ink-soft);font-size:13.5px;line-height:1.5;margin:0 0 22px;}
+  .google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);font-size:14px;font-weight:600;color:var(--ink);}
+  .google-btn:hover{background:var(--canvas);border-color:var(--ink-soft);}
+  .login-or{display:flex;align-items:center;gap:12px;color:var(--ink-soft);font-size:12px;margin:16px 0;}
+  .login-or::before,.login-or::after{content:"";flex:1;height:1px;background:var(--border);}
+  .login-input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:15px;outline:none;margin-bottom:10px;}
+  .login-input:focus{border-color:var(--accent);}
+  .login-btn{width:100%;justify-content:center;padding:12px;font-size:14px;}
+  .login-msg{margin-top:14px;font-size:13px;color:var(--accent);min-height:18px;line-height:1.5;}
+  .login-msg.err{color:var(--danger);}
+  .login-warn{margin-top:16px;font-size:12.5px;color:#9a6b00;background:#fff6e6;border:1px solid #ffe2ad;border-radius:10px;padding:10px 12px;line-height:1.45;}
+
+  .menu-toggle{display:none;}
+
+  /* task meta + open button */
+  .task-meta{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding-left:6px;}
+  .task-meta .tm{font-size:11.5px;color:var(--ink-soft);font-weight:600;white-space:nowrap;}
+  .task-meta .tm.rec{font-size:13px;}
+  .task-open{border:1px solid var(--border);background:var(--surface);color:var(--ink-soft);font-weight:600;font-size:12px;padding:4px 10px;border-radius:7px;opacity:0;transition:opacity .12s;}
+  .row:hover .task-open{opacity:1;}
+  .task-open:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* task drag-to-reorder */
+  .task-grip{color:var(--border-strong);font-size:13px;line-height:1;cursor:grab;flex:0 0 auto;padding:0 2px;letter-spacing:-2px;opacity:0;transition:opacity .12s;user-select:none;}
+  .row:hover .task-grip{opacity:1;}
+  .task-grip:active{cursor:grabbing;}
+  .row.dragging{opacity:.4;}
+  .row.drop-before{box-shadow:inset 0 2px 0 var(--accent);}
+  .row.drop-after{box-shadow:inset 0 -2px 0 var(--accent);}
+  .add-task.drop-into{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 2px 0 var(--accent);}
+  .group-grip{color:var(--border-strong);font-size:13px;line-height:1;cursor:grab;padding:0 4px;letter-spacing:-2px;opacity:0;transition:opacity .12s;user-select:none;align-self:center;}
+  .group-head:hover .group-grip{opacity:1;}
+  .group-grip:active{cursor:grabbing;}
+  .group.g-dragging{opacity:.45;}
+  .group.g-drop-before{box-shadow:inset 0 3px 0 var(--accent);}
+  .group.g-drop-after{box-shadow:inset 0 -3px 0 var(--accent);}
+
+  /* archive + multi-select */
+  .btn.toggled{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);}
+  .row.archived{background:#fbfbfc;}
+  .row.archived .task-name{color:var(--ink-soft);font-style:italic;}
+  .row.archived .status-pill,.row.archived .avatar{opacity:.6;}
+  .arch-tag{background:#eef0f4;color:var(--ink-soft);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:20px;}
+  .sel-cell{display:flex;align-items:center;justify-content:center;width:38px;flex:0 0 38px;border-right:1px solid var(--border);cursor:pointer;}
+  .sel-cell input{width:17px;height:17px;cursor:pointer;accent-color:var(--accent);}
+  .row.header .sel-cell{background:transparent;}
+  .bulk-bar{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:10px;background:var(--ink);color:#fff;padding:10px 12px 10px 18px;border-radius:12px;box-shadow:0 12px 40px rgba(27,29,40,.35);}
+  .bulk-bar .bulk-count{font-weight:600;font-size:13.5px;margin-right:4px;}
+  .bulk-bar .btn{padding:7px 14px;}
+  .bulk-bar .btn-soft{background:transparent;color:#fff;border-color:rgba(255,255,255,.3);}
+  .bulk-bar .btn-soft:hover{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.5);}
+
+  /* task detail panel */
+  .td-tabs{display:flex;gap:2px;padding:0 22px;border-bottom:1px solid var(--border);background:#fafbfc;}
+  .td-tab{border:none;background:none;padding:12px 14px;font-weight:600;font-size:13px;color:var(--ink-soft);border-bottom:2px solid transparent;margin-bottom:-1px;}
+  .td-tab:hover{color:var(--ink);}
+  .td-tab.on{color:var(--accent);border-bottom-color:var(--accent);}
+  .td-body{padding:18px 22px;max-height:52vh;overflow-y:auto;}
+  .td-field{margin-bottom:16px;}
+  .td-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px;}
+  .td-input{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;background:var(--surface);color-scheme:light;}
+  .td-input:focus{border-color:var(--accent);}
+  select.td-input{cursor:pointer;font-weight:600;}
+  .td-hint{font-size:12px;color:var(--ink-soft);margin-top:6px;line-height:1.45;}
+  .td-empty{color:var(--ink-soft);font-size:13px;padding:10px 0;text-align:center;}
+
+  /* comments */
+  .cm-list{display:flex;flex-direction:column;gap:14px;margin-bottom:16px;}
+  .cm{display:flex;gap:10px;align-items:flex-start;}
+  .cm-main{flex:1;min-width:0;}
+  .cm-head{font-size:12.5px;color:var(--ink-soft);}
+  .cm-head b{color:var(--ink);}
+  .cm-head span{margin-left:6px;}
+  .cm-text{font-size:13.5px;color:var(--ink);margin-top:3px;white-space:pre-wrap;line-height:1.5;}
+  .cm-box{display:flex;gap:10px;align-items:flex-end;border-top:1px solid var(--border);padding-top:14px;}
+  .cm-box textarea{flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;outline:none;resize:vertical;font-family:inherit;}
+  .cm-box textarea:focus{border-color:var(--accent);}
+
+  /* attachments */
+  .att-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:14px;}
+  .att{border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;background:var(--surface);}
+  .att img{width:100%;height:96px;object-fit:cover;background:var(--canvas);}
+  .att-ic{height:96px;display:flex;align-items:center;justify-content:center;font-size:34px;background:var(--canvas);}
+  .att-meta{padding:8px 10px;}
+  .att-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .att-sub{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+  .att-act{border:none;border-top:1px solid var(--border);background:none;padding:7px;font-size:12px;font-weight:600;color:var(--accent);text-align:center;text-decoration:none;display:block;cursor:pointer;}
+  .att-act:hover{background:var(--canvas);}
+  .att-act.danger{color:var(--danger);}
+  .att-upload{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1.5px dashed var(--border-strong);border-radius:10px;padding:18px;color:var(--ink-soft);font-weight:600;cursor:pointer;}
+  .att-upload span{font-size:11px;font-weight:500;}
+  .att-upload:hover{border-color:var(--accent);color:var(--accent);}
+  .att-upload.drag{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);border-style:solid;}
+
+  /* activity / audit */
+  .act-list{display:flex;flex-direction:column;}
+  .act{display:flex;gap:10px;padding:8px 0;align-items:flex-start;}
+  .act-dot{width:8px;height:8px;border-radius:50%;background:var(--border-strong);margin-top:6px;flex:0 0 auto;}
+  .act-text{font-size:13px;color:var(--ink);}
+  .act-when{font-size:11.5px;color:var(--ink-soft);margin-top:1px;}
+
+  /* templates */
+  .tpl-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
+  .tpl-row:last-child{border-bottom:none;}
+  .tpl-dot{width:12px;height:12px;border-radius:4px;flex:0 0 auto;}
+  .tpl-main{flex:1;min-width:0;}
+  .tpl-name{font-weight:600;font-size:14px;}
+  .tpl-sub{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+
+  /* workload */
+  .wl{border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);}
+  .wl-head{display:flex;align-items:center;gap:10px;}
+  .wl-name{font-weight:700;font-size:14px;flex:1;}
+  .wl-total{font-size:12.5px;color:var(--ink-soft);}
+  .wl-bar{display:flex;height:10px;border-radius:6px;overflow:hidden;margin:11px 0 10px;background:var(--canvas);}
+  .wl-bar span{display:block;}
+  .wl-chips{display:flex;flex-wrap:wrap;gap:6px 12px;}
+  .wl-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);font-weight:500;}
+  .wl-sw{width:10px;height:10px;border-radius:3px;}
+  .wl-unassigned{font-size:12.5px;color:var(--ink-soft);padding:4px 2px;font-weight:500;}
+</style>
+</head>
+<body>
+  <!-- App shell (hidden until signed in) -->
+  <div id="appShell" style="display:none;width:100%;height:100%;">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="mark"><span></span><span></span><span></span><span></span></div>
+      <h1>Cousins Track</h1>
+    </div>
+    <div class="nav-label">Boards</div>
+    <ul class="board-list" id="boardList"></ul>
+    <button class="add-board" id="addBoard">＋ New board</button>
+    <button class="add-board" id="peopleBtn" style="margin-top:0;">👥 People directory</button>
+    <button class="add-board" id="inspireBtn" style="margin-top:0;">✨ Get Inspiration</button>
+    <div class="sidebar-foot">
+      <div class="me-row">
+        <span class="avatar" id="meAvatar" style="margin:0"></span>
+        <div class="me-main"><div class="me-name" id="meName"></div><div class="me-email" id="meEmail"></div></div>
+        <button class="ghost" id="signOutBtn" style="flex:0 0 auto;">Sign out</button>
+      </div>
+      <div class="io">
+        <button class="ghost" id="exportBtn">Export backup</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main" id="main"></main>
+  </div>
+
+  <!-- Login screen -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="login-brand"><div class="mark"><span></span><span></span><span></span><span></span></div><h1>Cousins Track</h1></div>
+      <p class="login-sub">Sign in to Cousins Track. Use your Google account, or get a one-time magic link by email.</p>
+      <button class="google-btn" id="googleBtn">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4.5 24 4.5 13.2 4.5 4.5 13.2 4.5 24S13.2 43.5 24 43.5 43.5 34.8 43.5 24c0-1.2-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4.5 24 4.5 16.3 4.5 9.7 8.9 6.3 14.7z"/><path fill="#4CAF50" d="M24 43.5c5.4 0 10.3-2.1 14-5.4l-6.5-5.5c-2 1.5-4.6 2.4-7.5 2.4-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.6 39 16.2 43.5 24 43.5z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.5l6.5 5.5c-.5.4 7-5.1 7-15 0-1.2-.1-2.3-.4-3.5z"/></svg>
+        Continue with Google
+      </button>
+      <div class="login-or"><span>or</span></div>
+      <div id="loginForm">
+        <input type="email" id="loginEmail" class="login-input" placeholder="you@theadvgroup.com" autocomplete="email">
+        <button class="btn btn-primary login-btn" id="loginBtn">Send magic link</button>
+      </div>
+      <div id="loginMsg" class="login-msg"></div>
+      <div id="configWarn" class="login-warn" style="display:none;">⚠ Add your Supabase URL and publishable key in the CONFIG block at the top of this file before signing in.</div>
+    </div>
+  </div>
+
+  <script>
+  /* =========================================================
+     Cousins Track — Supabase-backed web app (single file).
+     • Auth: Supabase email magic-link.
+     • Data: one row per board in `boards` (JSONB `data`),
+       access controlled by the `board_members` table + RLS.
+     • Files: Supabase Storage bucket `attachments`.
+     Deploy as a static file (GitHub Pages). No server needed.
+     ========================================================= */
+
+  const PALETTE = ["#5b5bd6","#00c875","#fdab3d","#e2445c","#0086c0","#a25ddc","#ff7575","#579bfc","#037f4c","#bb3354","#9aadbd","#ff158a"];
+  const GROUP_STRIPES = ["#1A365D","#059669"]; // navy / emerald — groups alternate by position
+  const STATUS_DEFAULTS = [
+    {id:"s_done", label:"Done", color:"#00c875"},
+    {id:"s_work", label:"Working on it", color:"#fdab3d"},
+    {id:"s_stuck", label:"Stuck", color:"#e2445c"},
+    {id:"s_none", label:"Not started", color:"#c4c4c4"},
+  ];
+  const ROLES = ["admin","editor","viewer"];
+  const uid = (p="id") => p + "_" + Math.random().toString(36).slice(2,9);
+
+  /* ---- Supabase client ---- */
+  const CONFIG = window.CONFIG || {};
+  const configured = CONFIG.SUPABASE_URL && !/YOUR-PROJECT/.test(CONFIG.SUPABASE_URL) && CONFIG.SUPABASE_PUBLISHABLE_KEY && !/XXXX/.test(CONFIG.SUPABASE_PUBLISHABLE_KEY);
+  const sb = configured ? supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_PUBLISHABLE_KEY) : null;
+
+  /* ---- signed-in identity ---- */
+  let me = { id:"", email:"", name:"", color:PALETTE[0] };
+  function meName(){ return me.name || me.email; }
+  function colorForEmail(email){ let h=0; for(let i=0;i<email.length;i++) h=(h*31+email.charCodeAt(i))>>>0; return PALETTE[h%PALETTE.length]; }
+  function nameFromEmail(email){ const s=(email||"").split("@")[0].replace(/[._-]+/g," "); return s.replace(/\b\w/g,c=>c.toUpperCase()).trim()||email; }
+
+  /* ---- in-memory state (loaded from Supabase) ---- */
+  let state = { boards:[], activeBoardId:null, templates:[], directory:[] };
+  let searchTerm="";
+  let showArchived=false, selectMode=false, selected=new Set();
+  // Group collapse is a personal view preference (per user, this browser) — never synced to others.
+  let collapsedSet=new Set();
+  function collapseKey(){ return "ct.collapsed."+(me.email||"anon"); }
+  function loadCollapsed(){ try{ const raw=localStorage.getItem(collapseKey()); collapsedSet=new Set(raw?JSON.parse(raw):[]); }catch(_){ collapsedSet=new Set(); } }
+  function saveCollapsed(){ try{ localStorage.setItem(collapseKey(), JSON.stringify([...collapsedSet])); }catch(_){} }
+  function isCollapsed(g){ return collapsedSet.has(g.id); }
+  function toggleCollapsed(g){ if(collapsedSet.has(g.id)) collapsedSet.delete(g.id); else collapsedSet.add(g.id); saveCollapsed(); }
+
+  /* ---- persistence ---- */
+  // Board structure (groups/columns/statuses/tasks) is stored in boards.data (JSONB).
+  // Membership (people + roles) is stored in board_members and kept out of `data`.
+  function serializeBoard(b){ const c={...b}; delete c.people; return c; }
+  let recentRevs=[]; // revisions we wrote, so realtime can skip our own echoes
+  async function pushBoard(b){
+    if(!sb||!b) return;
+    b.__rev = uid("rev");
+    recentRevs.push(b.__rev); if(recentRevs.length>10) recentRevs.shift();
+    const { error } = await sb.from("boards").upsert({ id:b.id, name:b.name, data:serializeBoard(b) }, { onConflict:"id" });
+    if(error) console.warn("save board:", error.message);
+  }
+  let saveTimer=null, dirtyId=null;
+  function save(){ // debounced remote save of the active board (keeps existing call sites working)
+    const b=board(); if(!b) return true;
+    dirtyId=b.id; clearTimeout(saveTimer);
+    saveTimer=setTimeout(()=>{ const bb=state.boards.find(x=>x.id===dirtyId); if(bb) pushBoard(bb); }, 600);
+    return true;
+  }
+  async function syncMembers(b){
+    if(!sb) return;
+    const rows=b.people.map(p=>({ board_id:b.id, email:p.id, name:p.name, color:p.color, role:p.role }));
+    if(rows.length){ const { error } = await sb.from("board_members").upsert(rows, { onConflict:"board_id,email" }); if(error) console.warn("members:", error.message); }
+    const { data:cur } = await sb.from("board_members").select("email").eq("board_id", b.id);
+    const want=new Set(b.people.map(p=>p.id.toLowerCase()));
+    for(const r of (cur||[])){ if(!want.has(r.email.toLowerCase())) await sb.from("board_members").delete().eq("board_id",b.id).eq("email",r.email); }
+  }
+
+  /* ---- permissions (role comes from this board's member list) ---- */
+  function roleOn(b, email){ const p=(b.people||[]).find(x=>String(x.id).toLowerCase()===String(email).toLowerCase()); return p?p.role:null; }
+  function myRole(b){ return roleOn(b, me.email); }
+  function canEdit(b){ const r=myRole(b); return r==="admin"||r==="editor"; }
+  function isAdmin(b){ return myRole(b)==="admin"; }
+  function accessibleBoards(){ return state.boards; } // RLS already returns only boards I'm a member of
+  const board = () => state.boards.find(b=>b.id===state.activeBoardId);
+  let dragBoardId=null;
+  function moveBoard(draggedId,targetId,e){
+    if(draggedId===targetId) return;
+    const from=state.boards.findIndex(x=>x.id===draggedId);
+    if(from<0) return;
+    const [item]=state.boards.splice(from,1);
+    let idx=state.boards.findIndex(x=>x.id===targetId);
+    if(idx<0){ state.boards.push(item); }
+    else {
+      let after=false;
+      const li=e&&e.currentTarget;
+      if(li&&li.getBoundingClientRect){ const r=li.getBoundingClientRect(); after=e.clientY>r.top+r.height/2; }
+      state.boards.splice(after?idx+1:idx,0,item);
+    }
+    renderSidebar(); // ordering is per-session in v1
+  }
+
+  function startOfToday(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+  function logActivity(t, text){ (t.activity = t.activity||[]).push({id:uid("a"), who:meName(), when:new Date().toISOString(), text}); }
+  function fmtWhen(iso){
+    const d=new Date(iso); const now=new Date();
+    const sameDay=d.toDateString()===now.toDateString();
+    const opts = sameDay ? {hour:"numeric",minute:"2-digit"} : {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"};
+    return d.toLocaleString("en", opts);
+  }
+  const RECUR_OPTS = [["","Does not repeat"],["day","Every day"],["week","Every week"],["2week","Every 2 weeks"],["month","Every month"],["month-weekday","Monthly — on a weekday (e.g. first Monday)"],["quarter","Every quarter"],["year","Every year"]];
+  const RECUR_LABEL = {day:"Daily",week:"Weekly","2week":"Every 2 weeks",month:"Monthly",quarter:"Quarterly",year:"Yearly"};
+  const WEEK_ORD = [["1","First"],["2","Second"],["3","Third"],["4","Fourth"],["last","Last"]];
+  const WEEKDAYS = [["0","Sunday"],["1","Monday"],["2","Tuesday"],["3","Wednesday"],["4","Thursday"],["5","Friday"],["6","Saturday"]];
+  function recurLabel(rec){
+    if(!rec||!rec.every) return "";
+    if(rec.every==="month-weekday"){
+      const ord=(WEEK_ORD.find(o=>o[0]===String(rec.week))||["","?"])[1];
+      const wd=(WEEKDAYS.find(w=>w[0]===String(rec.weekday))||["","?"])[1];
+      return `Monthly · ${ord} ${wd}`;
+    }
+    return RECUR_LABEL[rec.every]||"";
+  }
+  function fmtLocal(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+  function nthWeekdayOfMonth(year, month, week, weekday){
+    weekday=parseInt(weekday,10);
+    if(week==="last"){
+      const last=new Date(year, month+1, 0);
+      const diff=(last.getDay()-weekday+7)%7;
+      return new Date(year, month, last.getDate()-diff);
+    }
+    const w=parseInt(week,10)||1;
+    const first=new Date(year, month, 1);
+    const offset=(weekday-first.getDay()+7)%7;
+    let day=1+offset+(w-1)*7;
+    const dim=new Date(year, month+1, 0).getDate();
+    if(day>dim) day-=7;        // e.g. asked for 5th but month has only 4 — use the last one
+    return new Date(year, month, day);
+  }
+  function nextDate(fromISO, rec){
+    const every = typeof rec==="string" ? rec : (rec&&rec.every);
+    const base = fromISO ? new Date(fromISO+"T00:00:00") : startOfToday();
+    const d = new Date(base);
+    if(every==="day") d.setDate(d.getDate()+1);
+    else if(every==="week") d.setDate(d.getDate()+7);
+    else if(every==="2week") d.setDate(d.getDate()+14);
+    else if(every==="month") d.setMonth(d.getMonth()+1);
+    else if(every==="quarter") d.setMonth(d.getMonth()+3);
+    else if(every==="year") d.setFullYear(d.getFullYear()+1);
+    else if(every==="month-weekday"){
+      let ny=base.getFullYear(), nm=base.getMonth()+1; if(nm>11){ nm=0; ny++; }
+      return fmtLocal(nthWeekdayOfMonth(ny, nm, rec.week, rec.weekday));
+    }
+    return fmtLocal(d);
+  }
+  // Central status setter: logs the change and spawns the next occurrence of a recurring task on completion.
+  function setStatus(b,g,t,newId){
+    const sc=b.columns.find(c=>c.type==="status"); if(!sc) return;
+    const oldId=t.values[sc.id]; if(oldId===newId) return;
+    const lbl=id=>(b.statuses.find(s=>s.id===id)||{}).label||"—";
+    t.values[sc.id]=newId;
+    logActivity(t, `Status → ${lbl(newId)}`);
+    const isDone = (b.statuses.find(s=>s.id===newId)||{}).label && /done|complete/i.test((b.statuses.find(s=>s.id===newId)||{}).label);
+    const wasDone = (b.statuses.find(s=>s.id===oldId)||{}).label && /done|complete/i.test((b.statuses.find(s=>s.id===oldId)||{}).label);
+    if(isDone && !wasDone && t.recurrence && t.recurrence.every){
+      spawnRecurrence(b,g,t);
+    }
+  }
+  function spawnRecurrence(b,g,t){
+    const dateCol=b.columns.find(c=>c.type==="date");
+    const baseDue = dateCol ? t.values[dateCol.id] : "";
+    const nt={id:uid("t"), name:t.name, notes:t.notes||"", values:{}, comments:[], attachments:[], activity:[], recurrence:{...t.recurrence}};
+    b.columns.forEach(c=>{
+      if(c.type==="status") nt.values[c.id]=notStartedStatusId(b);
+      else if(c.type==="date") nt.values[c.id]=nextDate(baseDue, t.recurrence);
+      else if(c.type==="people") nt.values[c.id]=[...(t.values[c.id]||[])];
+      else nt.values[c.id]=t.values[c.id]||"";
+    });
+    logActivity(nt, `Created automatically — repeats ${recurLabel(t.recurrence)}`.trim());
+    const i=g.tasks.indexOf(t);
+    g.tasks.splice(i+1,0,nt);
+    logActivity(t, "Completed — next occurrence scheduled");
+  }
+  function notStartedStatusId(b){
+    const ns=b.statuses.find(s=>/not started|to ?do|backlog|new/i.test(s.label));
+    return (ns || b.statuses[b.statuses.length-1] || {}).id;
+  }
+  function isTaskDone(b,t){
+    const sc=b.columns.find(c=>c.type==="status"); if(!sc) return false;
+    const st=b.statuses.find(s=>s.id===t.values[sc.id]);
+    return !!(st && /done|complete/i.test(st.label));
+  }
+  function taskOverdueDate(b,t){
+    if(t.archived || isTaskDone(b,t)) return null;
+    let due=null;
+    b.columns.filter(c=>c.type==="date").forEach(c=>{ const v=t.values[c.id];
+      if(v && new Date(v) < startOfToday()){ if(!due || new Date(v)<new Date(due)) due=v; } });
+    return due;
+  }
+  function taskAssignedTo(b,t,key){
+    const k=String(key).toLowerCase();
+    return b.columns.filter(c=>c.type==="people").some(c=>(t.values[c.id]||[]).some(pid=>{
+      const p=b.people.find(x=>x.id===pid); return p && (String(p.id).toLowerCase()===k || p.name.toLowerCase()===k); }));
+  }
+
+  let openPop=null;
+  function closePop(){ if(openPop){ openPop.remove(); openPop=null; document.removeEventListener("mousedown",outside,true);} }
+  function outside(e){ if(openPop && !openPop.contains(e.target)) closePop(); }
+  function popover(anchor, build){
+    closePop();
+    const r=anchor.getBoundingClientRect();
+    const pop=document.createElement("div"); pop.className="pop"; build(pop);
+    document.body.appendChild(pop);
+    let top=r.bottom+6, left=r.left;
+    if(left+pop.offsetWidth>window.innerWidth-10) left=window.innerWidth-pop.offsetWidth-10;
+    if(top+pop.offsetHeight>window.innerHeight-10) top=r.top-pop.offsetHeight-6;
+    pop.style.top=Math.max(10,top)+"px"; pop.style.left=Math.max(10,left)+"px";
+    openPop=pop; setTimeout(()=>document.addEventListener("mousedown",outside,true),0);
+  }
+
+  /* ---------- SIDEBAR ---------- */
+  function renderSidebar(){
+    const ul=document.getElementById("boardList"); ul.innerHTML="";
+    const visible=accessibleBoards();
+    if(visible.length===0){
+      const li=document.createElement("li");
+      li.style.cssText="padding:10px 12px;color:var(--ink-soft);font-size:12.5px;";
+      li.textContent="No boards shared with you.";
+      ul.appendChild(li);
+    }
+    visible.forEach(b=>{
+      const li=document.createElement("li");
+      li.draggable=true;
+      li.dataset.boardId=b.id;
+      const btn=document.createElement("button");
+      btn.className="board-item"+(b.id===state.activeBoardId?" active":"");
+      const dotColor=(b.groups[0]&&b.groups[0].color)||"#5b5bd6";
+      btn.style.setProperty("--bdot",dotColor);
+      btn.innerHTML=`<span class="grip" title="Drag to reorder">⠿</span><span class="dot"></span><span style="flex:1">${escapeHtml(b.name)}</span>`;
+      btn.onclick=()=>{ state.activeBoardId=b.id; save(); renderAll(); };
+      if(isAdmin(b)){
+        const menu=document.createElement("span"); menu.textContent="⋯"; menu.style.cssText="color:var(--ink-soft);padding:0 2px;";
+        menu.onclick=(e)=>{ e.stopPropagation(); boardMenu(menu,b); };
+        btn.appendChild(menu);
+      }
+      li.appendChild(btn);
+      // drag-to-reorder
+      li.addEventListener("dragstart",(e)=>{ dragBoardId=b.id; li.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; try{e.dataTransfer.setData("text/plain",b.id);}catch(_){} });
+      li.addEventListener("dragend",()=>{ dragBoardId=null; li.classList.remove("dragging"); ul.querySelectorAll(".drag-over").forEach(x=>x.classList.remove("drag-over")); });
+      li.addEventListener("dragover",(e)=>{ if(dragBoardId&&dragBoardId!==b.id){ e.preventDefault(); e.dataTransfer.dropEffect="move"; li.classList.add("drag-over"); } });
+      li.addEventListener("dragleave",()=>li.classList.remove("drag-over"));
+      li.addEventListener("drop",(e)=>{ e.preventDefault(); li.classList.remove("drag-over"); if(dragBoardId) moveBoard(dragBoardId,b.id,e); });
+      ul.appendChild(li);
+    });
+
+    const av=document.getElementById("meAvatar"); av.style.background=me.color; av.textContent=initials(meName());
+    document.getElementById("meName").textContent=meName();
+    document.getElementById("meEmail").textContent=me.email;
+  }
+  function boardMenu(anchor,b){
+    popover(anchor,(pop)=>{
+      pop.appendChild(mkItem("Board settings…",()=>{ closePop(); openSettings(); }));
+      pop.appendChild(mkItem("Rename board",()=>{ closePop(); const n=prompt("Board name:",b.name); if(n){b.name=n.trim();save();renderAll();}}));
+      pop.appendChild(mkItem("Duplicate board",()=>{ closePop();
+        const copy=JSON.parse(JSON.stringify(b)); copy.id=uid("b"); copy.name=b.name+" (copy)";
+        copy.groups.forEach(g=>{g.id=uid("g");g.tasks.forEach(t=>t.id=uid("t"));});
+        state.boards.push(copy); state.activeBoardId=copy.id; renderAll();
+        (async()=>{ await pushBoard(copy); await syncMembers(copy); })(); }));
+      pop.appendChild(sep());
+      const del=mkItem("Delete board",()=>{ closePop();
+        if(state.boards.length<=1){ alert("Keep at least one board."); return; }
+        if(confirm("Delete \""+b.name+"\"?")){ const id=b.id; state.boards=state.boards.filter(x=>x.id!==id); ensureAccessible(); deleteBoardRow(id); renderAll(); }});
+      del.classList.add("danger"); pop.appendChild(del);
+    });
+  }
+  function ensureAccessible(){
+    const acc=accessibleBoards();
+    if(!acc.find(b=>b.id===state.activeBoardId)) state.activeBoardId = acc[0]?acc[0].id:null;
+  }
+
+  /* ---------- MAIN ---------- */
+  function renderMain(){
+    const main=document.getElementById("main");
+    const b=board();
+    if(!b){
+      main.innerHTML=`<div class="empty-state locked"><div class="lk">🔒</div><h2>No boards yet</h2><p>You're signed in as ${escapeHtml(me.email)}. Create your first board, or ask a board admin to add your email under Board settings.</p></div>`;
+      return;
+    }
+    const editable=canEdit(b);
+    const admin=isAdmin(b);
+    const overdueCount=accessibleBoards().reduce((n,bd)=>n+bd.groups.reduce((m,g)=>m+g.tasks.filter(t=>taskOverdueDate(bd,t)&&taskAssignedTo(bd,t,me.email)).length,0),0);
+
+    main.innerHTML=`
+      <div class="board-head">
+        <div class="board-title-row">
+          <button class="btn btn-soft menu-toggle" id="menuToggle" style="padding:8px 11px;">☰</button>
+          <div style="flex:1;min-width:0;">
+            <input class="board-title" id="boardTitle" value="${escapeAttr(b.name)}" spellcheck="false" ${editable?"":"readonly"}>
+            <input class="board-desc" id="boardDesc" value="${escapeAttr(b.description||"")}" placeholder="${editable?"Add a description…":""}" spellcheck="false" ${editable?"":"readonly"}>
+          </div>
+        </div>
+        <div class="toolbar">
+          ${editable?`<button class="btn btn-primary" id="addGroupTop">＋ Add group</button>`:""}
+          <button class="btn btn-soft" id="collapseAllBtn">${b.groups.length>0 && b.groups.every(g=>isCollapsed(g))?"⊞ Expand all":"⊟ Collapse all"}</button>
+          <button class="btn btn-warn" id="overdueBtn">⚠ Overdue ${overdueCount?`<span class="badge">${overdueCount}</span>`:""}</button>
+          <button class="btn btn-soft" id="workloadBtn">👥 Workload</button>
+          ${editable?`<button class="btn btn-soft" id="templatesBtn">▦ Templates</button>`:""}
+          <button class="btn btn-soft${(selectMode||showArchived)?" toggled":""}" id="settingsMenuBtn">⚙ Settings ▾</button>
+          <div class="search">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="searchInput" placeholder="Search tasks…" value="${escapeAttr(searchTerm)}">
+          </div>
+        </div>
+      </div>
+      <div class="board-body" id="boardBody"></div>`;
+    renderBody();
+
+    if(editable){
+      const tEl=document.getElementById("boardTitle"); tEl.onchange=()=>{ b.name=tEl.value.trim()||"Untitled board"; save(); renderSidebar(); };
+      const dEl=document.getElementById("boardDesc"); dEl.onchange=()=>{ b.description=dEl.value; save(); };
+      document.getElementById("addGroupTop").onclick=addGroup;
+      document.getElementById("templatesBtn").onclick=openTemplates;
+    }
+    document.getElementById("collapseAllBtn").onclick=()=>{
+      const b=board();
+      const allCollapsed = b.groups.length>0 && b.groups.every(g=>isCollapsed(g));
+      if(allCollapsed) b.groups.forEach(g=>collapsedSet.delete(g.id));
+      else b.groups.forEach(g=>collapsedSet.add(g.id));
+      saveCollapsed(); renderMain();
+    };
+    document.getElementById("settingsMenuBtn").onclick=(e)=>{
+      popover(e.currentTarget,(pop)=>{
+        if(editable) pop.appendChild(mkItem((selectMode?"✓ ":"")+"☑ Select tasks",()=>{ closePop(); selectMode=!selectMode; if(!selectMode) selected.clear(); renderMain(); }));
+        pop.appendChild(mkItem((showArchived?"✓ ":"")+"🗄 Show archived tasks",()=>{ closePop(); showArchived=!showArchived; renderMain(); }));
+        if(editable) pop.appendChild(mkItem("◐ Statuses",()=>{ closePop(); openStatusModal(); }));
+        if(admin){ pop.appendChild(sep()); pop.appendChild(mkItem("👥 Members & access",()=>{ closePop(); openSettings(); })); }
+      });
+    };
+    document.getElementById("overdueBtn").onclick=openOverdue;
+    document.getElementById("workloadBtn").onclick=openWorkload;
+    const si=document.getElementById("searchInput"); si.oninput=()=>{ searchTerm=si.value; renderBody(); };
+    const mt=document.getElementById("menuToggle"); if(mt) mt.onclick=()=>document.getElementById("sidebar").classList.toggle("open");
+  }
+
+  function renderBody(){
+    const b=board(); const editable=canEdit(b);
+    const body=document.getElementById("boardBody"); body.innerHTML="";
+    const term=searchTerm.trim().toLowerCase();
+
+    b.groups.forEach((g,idx)=>{
+      let tasks = g.tasks.filter(t=> showArchived ? true : !t.archived);
+      if(term) tasks = tasks.filter(t=>t.name.toLowerCase().includes(term));
+      if(term && tasks.length===0) return;
+      const activeCount=g.tasks.filter(t=>!t.archived).length;
+      const archivedCount=g.tasks.length-activeCount;
+
+      const wrap=document.createElement("div"); wrap.className="group"; wrap.style.setProperty("--grp", GROUP_STRIPES[idx % GROUP_STRIPES.length]);
+      const head=document.createElement("div"); head.className="group-head";
+      head.innerHTML=`
+        <button class="caret ${isCollapsed(g)?"collapsed":""}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></button>
+        <input class="group-name" value="${escapeAttr(g.name)}" spellcheck="false" ${editable?"":"readonly"}>
+        <span class="group-count">${activeCount} ${activeCount===1?"task":"tasks"}${archivedCount?` · ${archivedCount} archived`:""}</span>
+        ${editable?`<button class="group-menu-btn">⋯</button>`:""}`;
+      head.querySelector(".caret").onclick=()=>{ toggleCollapsed(g); renderBody(); };
+      if(editable){
+        const gName=head.querySelector(".group-name"); gName.onchange=()=>{ g.name=gName.value.trim()||"Group"; save(); };
+        head.querySelector(".group-menu-btn").onclick=(e)=>groupMenu(e.currentTarget,g);
+        // drag handle to reorder groups
+        const ggrip=document.createElement("span"); ggrip.className="group-grip"; ggrip.textContent="⠿"; ggrip.title="Drag to reorder group"; ggrip.draggable=true;
+        ggrip.addEventListener("dragstart",(e)=>{ dragGroup={id:g.id}; wrap.classList.add("g-dragging"); e.dataTransfer.effectAllowed="move"; try{e.dataTransfer.setData("text/plain",g.id);}catch(_){}
+          try{ e.dataTransfer.setDragImage(head, 20, 16); }catch(_){} });
+        ggrip.addEventListener("dragend",()=>{ dragGroup=null; document.querySelectorAll(".group.g-dragging,.group.g-drop-before,.group.g-drop-after").forEach(x=>x.classList.remove("g-dragging","g-drop-before","g-drop-after")); });
+        head.insertBefore(ggrip, head.firstChild);
+        wrap.addEventListener("dragover",(e)=>{ if(!dragGroup || dragGroup.id===g.id) return; e.preventDefault(); e.dataTransfer.dropEffect="move";
+          const r=wrap.getBoundingClientRect(); const after=e.clientY>r.top+r.height/2;
+          wrap.classList.toggle("g-drop-after",after); wrap.classList.toggle("g-drop-before",!after); });
+        wrap.addEventListener("dragleave",(e)=>{ if(!wrap.contains(e.relatedTarget)) wrap.classList.remove("g-drop-before","g-drop-after"); });
+        wrap.addEventListener("drop",(e)=>{ if(!dragGroup || dragGroup.id===g.id) return; e.preventDefault();
+          const r=wrap.getBoundingClientRect(); const after=e.clientY>r.top+r.height/2; const id=dragGroup.id; dragGroup=null;
+          document.querySelectorAll(".group.g-drop-before,.group.g-drop-after,.group.g-dragging").forEach(x=>x.classList.remove("g-drop-before","g-drop-after","g-dragging"));
+          moveGroup(id, g.id, after); });
+      }
+      wrap.appendChild(head);
+
+      if(!isCollapsed(g)){
+        const table=document.createElement("div"); table.className="table";
+        const hr=document.createElement("div"); hr.className="row header";
+        hr.appendChild(accentCell());
+        if(selectMode && editable){ const s=document.createElement("div"); s.className="sel-cell"; hr.appendChild(s); }
+        const hName=document.createElement("div"); hName.className="cell c-name"; hName.dataset.col="__name"; hName.textContent="Task";
+        if(b.nameWidth) applyNameWidth(hName, b.nameWidth);
+        if(editable){ const rzN=document.createElement("div"); rzN.className="col-resize"; rzN.title="Drag to resize"; rzN.addEventListener("pointerdown", startNameResize(b)); hName.appendChild(rzN); }
+        hr.appendChild(hName);
+        b.columns.forEach(col=>{
+          const c=document.createElement("div"); c.className="cell c-col"; c.dataset.col=col.id; applyColWidth(c, col.width||170);
+          c.innerHTML=`<div class="col-head"><input value="${escapeAttr(col.name)}" spellcheck="false" ${editable?"":"readonly"}>${editable?`<button class="col-del" title="Delete column">✕</button>`:""}</div>`;
+          if(editable){
+            const inp=c.querySelector("input"); inp.onchange=()=>{ col.name=inp.value.trim()||"Column"; save(); };
+            c.querySelector(".col-del").onclick=()=>{
+              if(confirm("Delete column \""+col.name+"\"?")){
+                b.columns=b.columns.filter(x=>x.id!==col.id);
+                b.groups.forEach(gr=>gr.tasks.forEach(t=>delete t.values[col.id]));
+                save(); renderBody(); }};
+            const rz=document.createElement("div"); rz.className="col-resize"; rz.title="Drag to resize";
+            rz.addEventListener("pointerdown", startColResize(col)); c.appendChild(rz);
+          }
+          hr.appendChild(c);
+        });
+        const addC=document.createElement("div"); addC.className="cell c-add";
+        if(editable){ addC.innerHTML=`<button class="add-col-btn" title="Add column">＋</button>`; addC.querySelector("button").onclick=(e)=>addColumnMenu(e.currentTarget); }
+        hr.appendChild(addC);
+        table.appendChild(hr);
+
+        tasks.forEach(t=>table.appendChild(taskRow(b,g,t,editable)));
+
+        if(editable){
+          const at=document.createElement("button"); at.className="add-task"; at.innerHTML=`＋ Add task`;
+          at.onclick=()=>{ const nt={id:uid("t"),name:"",values:{},comments:[],attachments:[],activity:[],recurrence:null};
+            b.columns.forEach(c=>{ nt.values[c.id]=c.type==="people"?[]:(c.type==="status"?notStartedStatusId(b):""); });
+            logActivity(nt,"Task created");
+            g.tasks.push(nt); save(); renderBody(); openTask(b,g,nt,true); };
+          at.addEventListener("dragover",(e)=>{ if(!dragTask) return; e.preventDefault(); e.dataTransfer.dropEffect="move"; at.classList.add("drop-into"); });
+          at.addEventListener("dragleave",()=>at.classList.remove("drop-into"));
+          at.addEventListener("drop",(e)=>{ if(!dragTask) return; e.preventDefault(); at.classList.remove("drop-into"); const id=dragTask.id; dragTask=null; moveTask(id, g.id, null); });
+          table.appendChild(at);
+        }
+        wrap.appendChild(table);
+      }
+      body.appendChild(wrap);
+    });
+
+    if(editable){ const ag=document.createElement("button"); ag.className="add-group"; ag.innerHTML=`＋ Add group`; ag.onclick=addGroup; body.appendChild(ag); }
+
+    // bulk action bar (select mode)
+    const existing=document.getElementById("bulkBar"); if(existing) existing.remove();
+    if(selectMode && selected.size>0){
+      const b2=board();
+      const picked=[]; b2.groups.forEach(g=>g.tasks.forEach(t=>{ if(selected.has(t.id)) picked.push({g,t}); }));
+      const anyActive=picked.some(x=>!x.t.archived);
+      const anyArchived=picked.some(x=>x.t.archived);
+      const bar=document.createElement("div"); bar.id="bulkBar"; bar.className="bulk-bar";
+      bar.innerHTML=`<span class="bulk-count">${selected.size} selected</span>`;
+      if(anyActive){ const ab=document.createElement("button"); ab.className="btn btn-primary"; ab.textContent="Archive"; ab.onclick=()=>bulkArchive(true); bar.appendChild(ab); }
+      if(anyArchived){ const ub=document.createElement("button"); ub.className="btn btn-soft"; ub.textContent="Unarchive"; ub.onclick=()=>bulkArchive(false); bar.appendChild(ub); }
+      const cl=document.createElement("button"); cl.className="btn btn-soft"; cl.textContent="Clear"; cl.onclick=()=>{ selected.clear(); renderBody(); }; bar.appendChild(cl);
+      document.body.appendChild(bar);
+    }
+  }
+  function bulkArchive(archive){
+    const b=board(); let n=0;
+    b.groups.forEach(g=>g.tasks.forEach(t=>{ if(selected.has(t.id) && !!t.archived!==archive){ t.archived=archive; logActivity(t, archive?"Archived":"Unarchived"); n++; } }));
+    selected.clear(); save(); renderMain();
+  }
+  function setArchived(b,g,t,archive){ if(!!t.archived===archive) return; t.archived=archive; logActivity(t, archive?"Archived":"Unarchived"); save(); renderBody(); }
+  function accentCell(){ const a=document.createElement("div"); a.className="grp-accent"; return a; }
+  function applyColWidth(el,w){ el.style.flex=`0 0 ${w}px`; el.style.width=w+"px"; }
+  function applyNameWidth(el,w){ el.style.flex=`0 0 ${w}px`; el.style.width=w+"px"; el.style.minWidth=w+"px"; }
+  function startNameResize(b){
+    return (e)=>{ e.preventDefault(); e.stopPropagation();
+      const cellEl=e.currentTarget.parentElement;
+      const startX=e.clientX, startW=b.nameWidth||cellEl.getBoundingClientRect().width;
+      document.body.style.cursor="col-resize"; document.body.style.userSelect="none";
+      const move=(ev)=>{ const w=Math.max(140, Math.min(900, startW+(ev.clientX-startX))); b.nameWidth=w;
+        document.querySelectorAll('[data-col="__name"]').forEach(el=>applyNameWidth(el,w)); };
+      const up=()=>{ window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up);
+        document.body.style.cursor=""; document.body.style.userSelect=""; save(); };
+      window.addEventListener("pointermove",move); window.addEventListener("pointerup",up);
+    };
+  }
+  function startColResize(col){
+    return (e)=>{ e.preventDefault(); e.stopPropagation();
+      const startX=e.clientX, startW=col.width||170;
+      document.body.style.cursor="col-resize"; document.body.style.userSelect="none";
+      const sel='[data-col="'+(window.CSS&&CSS.escape?CSS.escape(col.id):col.id)+'"]';
+      const move=(ev)=>{ const w=Math.max(90, Math.min(680, startW+(ev.clientX-startX))); col.width=w;
+        document.querySelectorAll(sel).forEach(el=>applyColWidth(el,w)); };
+      const up=()=>{ window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up);
+        document.body.style.cursor=""; document.body.style.userSelect=""; save(); };
+      window.addEventListener("pointermove",move); window.addEventListener("pointerup",up);
+    };
+  }
+
+  let dragTask=null, dragGroup=null;
+  function moveTask(dragId, targetGroupId, targetTaskId, after){
+    const b=board();
+    let dragged=null;
+    b.groups.forEach(gr=>{ const i=gr.tasks.findIndex(x=>x.id===dragId); if(i>=0) dragged=gr.tasks.splice(i,1)[0]; });
+    if(!dragged) return;
+    const tg=b.groups.find(gr=>gr.id===targetGroupId)||b.groups[0]; if(!tg) return;
+    if(!targetTaskId){ tg.tasks.push(dragged); }
+    else { let idx=tg.tasks.findIndex(x=>x.id===targetTaskId); if(idx<0) tg.tasks.push(dragged); else tg.tasks.splice(after?idx+1:idx,0,dragged); }
+    save(); renderBody();
+  }
+  function moveGroup(dragId, targetId, after){
+    const b=board();
+    const from=b.groups.findIndex(g=>g.id===dragId); if(from<0) return;
+    const dragged=b.groups.splice(from,1)[0];
+    let idx=b.groups.findIndex(g=>g.id===targetId);
+    if(idx<0){ b.groups.push(dragged); } else { b.groups.splice(after?idx+1:idx, 0, dragged); }
+    save(); renderBody();
+  }
+
+  function taskRow(b,g,t,editable){
+    const row=document.createElement("div"); row.className="row"+(t.archived?" archived":""); row.appendChild(accentCell());
+
+    // selection checkbox (select mode)
+    if(selectMode && editable){
+      const selCell=document.createElement("label"); selCell.className="sel-cell";
+      const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=selected.has(t.id);
+      cb.onchange=()=>{ if(cb.checked) selected.add(t.id); else selected.delete(t.id); renderBody(); };
+      selCell.appendChild(cb); row.appendChild(selCell);
+    }
+
+    const nameCell=document.createElement("div"); nameCell.className="cell c-name"; nameCell.dataset.col="__name";
+    if(b.nameWidth) applyNameWidth(nameCell, b.nameWidth);
+    // drag handle (reorder) — only outside select mode
+    if(editable && !selectMode){
+      const grip=document.createElement("span"); grip.className="task-grip"; grip.textContent="⠿"; grip.title="Drag to reorder"; grip.draggable=true;
+      grip.addEventListener("dragstart",(e)=>{ dragTask={id:t.id}; row.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; try{e.dataTransfer.setData("text/plain",t.id);}catch(_){}
+        try{ e.dataTransfer.setDragImage(row, 24, 18); }catch(_){} });
+      grip.addEventListener("dragend",()=>{ dragTask=null; document.querySelectorAll(".row.dragging,.row.drop-before,.row.drop-after").forEach(r=>r.classList.remove("dragging","drop-before","drop-after")); });
+      nameCell.appendChild(grip);
+    }
+    const nameInput=document.createElement("input"); nameInput.className="task-name"; nameInput.value=t.name; nameInput.placeholder="Untitled task"; nameInput.spellcheck=false; nameInput.readOnly=!editable;
+    if(editable) nameInput.onchange=()=>{ const old=t.name; t.name=nameInput.value; if(old!==t.name) logActivity(t,`Renamed from “${old}” to “${t.name}”`); save(); };
+    nameCell.appendChild(nameInput);
+
+    // meta badges + open-details button
+    const meta=document.createElement("span"); meta.className="task-meta";
+    if(t.archived){ const ar=document.createElement("span"); ar.className="tm arch-tag"; ar.textContent="Archived"; meta.appendChild(ar); }
+    if(t.recurrence&&t.recurrence.every){ const r=document.createElement("span"); r.className="tm rec"; r.title="Repeats "+recurLabel(t.recurrence); r.textContent="🔁"; meta.appendChild(r); }
+    if((t.notes||"").trim()){ const n=document.createElement("span"); n.className="tm"; n.title="Has instructions"; n.textContent="📋"; meta.appendChild(n); }
+    if((t.comments||[]).length){ const c=document.createElement("span"); c.className="tm"; c.title="Comments"; c.textContent="💬 "+t.comments.length; meta.appendChild(c); }
+    if((t.attachments||[]).length){ const a=document.createElement("span"); a.className="tm"; a.title="Attachments"; a.textContent="📎 "+t.attachments.length; meta.appendChild(a); }
+    const open=document.createElement("button"); open.className="task-open"; open.title="Open task"; open.textContent="Open";
+    open.onclick=()=>openTask(b,g,t); meta.appendChild(open);
+    nameCell.appendChild(meta);
+
+    if(editable) nameCell.oncontextmenu=(e)=>{ e.preventDefault(); taskMenu(nameCell,b,g,t); };
+    row.appendChild(nameCell);
+
+    b.columns.forEach(col=>{ const cell=renderCell(b,g,t,col,editable); cell.dataset.col=col.id; applyColWidth(cell, col.width||170); row.appendChild(cell); });
+
+    const sp=document.createElement("div"); sp.className="cell c-add"; sp.style.borderRight="none";
+    if(editable){ sp.innerHTML=`<button class="add-col-btn" title="Row options" style="font-size:14px;">⋯</button>`; sp.querySelector("button").onclick=(e)=>taskMenu(e.currentTarget,b,g,t); }
+    row.appendChild(sp);
+
+    // drop target for reordering
+    if(editable && !selectMode){
+      row.addEventListener("dragover",(e)=>{ if(!dragTask || dragTask.id===t.id) return; e.preventDefault(); e.dataTransfer.dropEffect="move";
+        const r=row.getBoundingClientRect(); const after=e.clientY>r.top+r.height/2;
+        row.classList.toggle("drop-after",after); row.classList.toggle("drop-before",!after); });
+      row.addEventListener("dragleave",()=>{ row.classList.remove("drop-before","drop-after"); });
+      row.addEventListener("drop",(e)=>{ if(!dragTask || dragTask.id===t.id) return; e.preventDefault();
+        const r=row.getBoundingClientRect(); const after=e.clientY>r.top+r.height/2;
+        const id=dragTask.id; dragTask=null;
+        document.querySelectorAll(".row.drop-before,.row.drop-after,.row.dragging").forEach(x=>x.classList.remove("drop-before","drop-after","dragging"));
+        moveTask(id, g.id, t.id, after); });
+    }
+    return row;
+  }
+
+  function renderCell(b,g,t,col,editable){
+    if(col.type==="status"){
+      const cell=document.createElement("div"); cell.className="status-cell";
+      const st=b.statuses.find(s=>s.id===t.values[col.id]);
+      const btn=document.createElement("button"); btn.className="status-pill"+(st?"":" empty");
+      btn.style.background=st?st.color:""; btn.textContent=st?st.label:"—"; btn.disabled=!editable;
+      if(editable) btn.onclick=()=>statusPicker(btn,b,g,t,col);
+      cell.appendChild(btn); return cell;
+    }
+    if(col.type==="people"){
+      const cell=document.createElement("div"); cell.className="cell people-cell";
+      const ids=t.values[col.id]||[];
+      if(ids.length===0){ const e=document.createElement("span"); e.className="people-empty"; e.textContent=editable?"＋":"—"; cell.appendChild(e); }
+      ids.forEach(pid=>{ const p=b.people.find(x=>x.id===pid); if(!p)return;
+        const av=document.createElement("span"); av.className="avatar"; av.style.background=p.color; av.textContent=initials(p.name); av.title=p.name; cell.appendChild(av); });
+      if(editable){ cell.style.cursor="pointer"; cell.onclick=()=>peoplePicker(cell,b,t,col); }
+      return cell;
+    }
+    if(col.type==="date"){
+      const cell=document.createElement("div"); cell.className="cell date-cell c-col"; cell.style.padding="0";
+      const val=t.values[col.id]||"";
+      const overdue=val && new Date(val)<startOfToday() && !isTaskDone(b,t);
+      if(overdue) cell.classList.add("overdue");
+      const inp=document.createElement("input"); inp.type="date"; inp.value=val; inp.readOnly=!editable;
+      if(editable) inp.onchange=()=>{ const old=t.values[col.id]||""; t.values[col.id]=inp.value; if(old!==inp.value) logActivity(t,`${col.name} → ${inp.value||"cleared"}`); save(); renderBody(); };
+      cell.appendChild(inp); return cell;
+    }
+    const cell=document.createElement("div"); cell.className="cell text-cell c-col"; cell.style.padding="0";
+    const inp=document.createElement("input"); inp.type=col.type==="number"?"number":"text";
+    inp.value=t.values[col.id]??""; inp.placeholder="—"; inp.readOnly=!editable;
+    if(editable) inp.onchange=()=>{ t.values[col.id]=inp.value; save(); };
+    cell.appendChild(inp); return cell;
+  }
+
+  function statusPicker(anchor,b,g,t,col){
+    popover(anchor,(pop)=>{ pop.style.minWidth=anchor.offsetWidth+"px";
+      b.statuses.forEach(s=>{ const it=document.createElement("button"); it.className="pop-item";
+        it.innerHTML=`<span class="sw" style="background:${s.color}"></span>${escapeHtml(s.label)}`;
+        it.onclick=()=>{ setStatus(b,g,t,s.id); closePop(); save(); renderBody(); }; pop.appendChild(it); });
+      pop.appendChild(sep()); pop.appendChild(mkItem("Edit statuses…",()=>{ closePop(); openStatusModal(); }));
+    });
+  }
+  function peoplePicker(anchor,b,t,col){
+    popover(anchor,(pop)=>{ pop.appendChild(title("Assign people"));
+      const ids=t.values[col.id]||(t.values[col.id]=[]);
+      b.people.forEach(p=>{ const on=ids.includes(p.id); const it=document.createElement("button"); it.className="pop-item";
+        it.innerHTML=`<span class="avatar" style="background:${p.color};margin:0;width:22px;height:22px;border:none;font-size:10px">${initials(p.name)}</span><span style="flex:1">${escapeHtml(p.name)}</span>${on?'<span style="color:var(--accent)">✓</span>':''}`;
+        it.onclick=()=>{ if(on){ t.values[col.id]=ids.filter(x=>x!==p.id); logActivity(t,`Unassigned ${p.name}`);} else { ids.push(p.id); logActivity(t,`Assigned ${p.name}`);} save(); renderBody(); peoplePicker(anchor,b,t,col); };
+        pop.appendChild(it); });
+      pop.appendChild(sep()); pop.appendChild(mkItem("Manage members…",()=>{ closePop(); openSettings(); }));
+    });
+  }
+
+  function groupMenu(anchor,g){
+    const b=board();
+    popover(anchor,(pop)=>{
+      pop.appendChild(mkItem("Rename group",()=>{ closePop(); const n=prompt("Group name:",g.name); if(n){g.name=n.trim();save();renderBody();}}));
+      pop.appendChild(mkItem("Save as template",()=>{ closePop();
+        const name=prompt("Template name:", g.name); if(name===null) return;
+        const tpl=groupToTemplate(b,g,name.trim()||g.name); state.templates.push(tpl); pushTemplate(tpl);
+        alert(`Saved “${name.trim()||g.name}” as a template. Reuse it from the Templates button.`); }));
+      pop.appendChild(sep());
+      const del=mkItem("Delete group",()=>{ closePop(); if(confirm("Delete group \""+g.name+"\" and its tasks?")){ b.groups=b.groups.filter(x=>x.id!==g.id); save(); renderBody(); }});
+      del.classList.add("danger"); pop.appendChild(del);
+    });
+  }
+  function taskMenu(anchor,b,g,t){
+    popover(anchor,(pop)=>{
+      pop.appendChild(mkItem("Rename task",()=>{ closePop(); const n=prompt("Task:",t.name); if(n!=null){t.name=n;save();renderBody();}}));
+      pop.appendChild(mkItem("Duplicate task",()=>{ closePop(); const copy=JSON.parse(JSON.stringify(t)); copy.id=uid("t"); copy.archived=false; const i=g.tasks.indexOf(t); g.tasks.splice(i+1,0,copy); save(); renderBody(); }));
+      pop.appendChild(sep());
+      pop.appendChild(mkItem(t.archived?"Unarchive task":"Archive task",()=>{ closePop(); setArchived(b,g,t,!t.archived); }));
+      const del=mkItem("Delete permanently",()=>{ closePop(); if(confirm("Permanently delete this task? Archiving keeps its history; deleting cannot be undone.")) { g.tasks=g.tasks.filter(x=>x.id!==t.id); save(); renderBody(); } });
+      del.classList.add("danger"); pop.appendChild(del);
+    });
+  }
+  function addColumnMenu(anchor){
+    const b=board();
+    popover(anchor,(pop)=>{ pop.appendChild(title("New column"));
+      [["status","◐ Status"],["people","◍ People"],["date","▤ Date"],["text","▭ Text"],["number","# Number"]].forEach(([type,label])=>{
+        pop.appendChild(mkItem(label,()=>{ closePop();
+          const col={id:uid("col"),name:label.replace(/^[^ ]+ /,""),type}; b.columns.push(col);
+          b.groups.forEach(g=>g.tasks.forEach(t=>{ t.values[col.id]=type==="people"?[]:(type==="status"?(b.statuses[0]&&b.statuses[0].id):""); }));
+          save(); renderBody(); }));
+      });
+    });
+  }
+  function addGroup(){ const b=board(); const color=PALETTE[b.groups.length%PALETTE.length];
+    b.groups.push({id:uid("g"),name:"New group",color,collapsed:false,tasks:[]}); save(); renderBody(); }
+
+  /* ---------- MODALS ---------- */
+  function modal(buildHead, opts={}){
+    const ov=document.createElement("div"); ov.className="overlay";
+    const m=document.createElement("div"); m.className="modal"+(opts.wide?" wide":"");
+    const head=document.createElement("div"); head.className="modal-head"; buildHead(head);
+    const body=document.createElement("div"); body.className="modal-body";
+    const foot=document.createElement("div"); foot.className="modal-foot";
+    const sp=document.createElement("div"); sp.style.flex="1"; foot.appendChild(sp);
+    const done=document.createElement("button"); done.className="btn btn-primary"; done.textContent=opts.doneLabel||"Done";
+    done.onclick=()=>{ ov.remove(); if(board()) renderMain(); };
+    foot.appendChild(done);
+    m.appendChild(head); m.appendChild(body); m.appendChild(foot); ov.appendChild(m);
+    ov.onmousedown=(e)=>{ if(e.target===ov){ ov.remove(); if(board()) renderMain(); } };
+    document.body.appendChild(ov);
+    return {body, foot, sp, close:()=>{ ov.remove(); if(board()) renderMain(); }};
+  }
+
+  function openStatusModal(){
+    const b=board();
+    const {body}=modal(h=>h.innerHTML=`<h3>Statuses</h3><p>Labels and colors used by every status column on this board.</p>`);
+    (function draw(){
+      body.innerHTML="";
+      b.statuses.forEach(s=>{ const row=document.createElement("div"); row.className="edit-row";
+        row.innerHTML=`<input type="color" value="${s.color}"><input type="text" value="${escapeAttr(s.label)}"><button class="edit-del">✕</button>`;
+        const [col,lab]=row.querySelectorAll("input");
+        col.onchange=()=>{ s.color=col.value; save(); };
+        lab.onchange=()=>{ s.label=lab.value.trim()||"Status"; save(); };
+        row.querySelector(".edit-del").onclick=()=>{ if(b.statuses.length<=1){alert("Keep at least one status.");return;}
+          b.statuses=b.statuses.filter(x=>x.id!==s.id);
+          b.groups.forEach(g=>g.tasks.forEach(t=>b.columns.forEach(c=>{ if(c.type==="status"&&t.values[c.id]===s.id) t.values[c.id]=b.statuses[0].id; })));
+          save(); draw(); };
+        body.appendChild(row); });
+      const add=document.createElement("button"); add.className="add-line"; add.textContent="＋ Add status";
+      add.onclick=()=>{ b.statuses.push({id:uid("s"),label:"New status",color:PALETTE[b.statuses.length%PALETTE.length]}); save(); draw(); };
+      body.appendChild(add);
+    })();
+  }
+
+  function inviteMember(b,p){
+    const url=location.origin+location.pathname;
+    const hasBoard = b && b.id;
+    const subj = hasBoard ? `You've been added to “${b.name}” on Cousins Track` : `You've been invited to Cousins Track`;
+    const intro = hasBoard
+      ? `You've been given ${p.role} access to the “${b.name}” board on Cousins Track.`
+      : `You've been added to Cousins Track, our team's task tracker.`;
+    const body=`Hi ${p.name||""},
+
+${intro}
+
+To sign in:
+1. Go to ${url}
+2. Sign in with THIS email address (${p.id}) — click “Continue with Google”, or enter your email for a one-time magic link.
+
+Your boards appear automatically once you're signed in.`;
+    const { body:mb }=modal(h=>h.innerHTML=`<h3>Invite ${escapeHtml(p.name||p.id)}</h3><p>Copy this message into an email or chat, or open it straight in Gmail.</p>`,{wide:true});
+    mb.innerHTML="";
+    const meta=document.createElement("div"); meta.className="inv-meta";
+    meta.innerHTML=`<div><b>To:</b> ${escapeHtml(p.id)}</div><div><b>Subject:</b> ${escapeHtml(subj)}</div>`;
+    mb.appendChild(meta);
+    const ta=document.createElement("textarea"); ta.className="inv-text"; ta.value=body; ta.rows=9; mb.appendChild(ta);
+    const btns=document.createElement("div"); btns.className="inv-btns";
+    const copyMsg=document.createElement("button"); copyMsg.className="btn btn-primary"; copyMsg.textContent="Copy message";
+    copyMsg.onclick=()=>copyText(ta.value, copyMsg, "Copy message");
+    const copyLink=document.createElement("button"); copyLink.className="btn btn-soft"; copyLink.textContent="Copy link only";
+    copyLink.onclick=()=>copyText(url, copyLink, "Copy link only");
+    const gmail=document.createElement("button"); gmail.className="btn btn-soft"; gmail.textContent="Open in Gmail";
+    gmail.onclick=()=>window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(p.id)}&su=${encodeURIComponent(subj)}&body=${encodeURIComponent(ta.value)}`,"_blank");
+    const mailApp=document.createElement("button"); mailApp.className="btn btn-soft"; mailApp.textContent="Open in email app";
+    mailApp.onclick=()=>{ const a=document.createElement("a"); a.href=`mailto:${p.id}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(ta.value)}`; a.click(); };
+    btns.appendChild(copyMsg); btns.appendChild(gmail); btns.appendChild(copyLink); btns.appendChild(mailApp);
+    mb.appendChild(btns);
+  }
+  function copyText(txt, btn, original){
+    const done=()=>{ btn.textContent="Copied ✓"; setTimeout(()=>btn.textContent=original,1500); };
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopy(txt,done)); }
+    else fallbackCopy(txt,done);
+  }
+  function fallbackCopy(txt, done){
+    const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); done(); }catch(_){ alert("Copy failed — select the text and copy manually."); }
+    ta.remove();
+  }
+
+  let quotesCache=null;
+  async function loadQuotes(){
+    if(quotesCache) return quotesCache;
+    try{
+      const res=await fetch("quotes.txt", {cache:"no-store"});
+      if(!res.ok) throw new Error("no file");
+      const text=await res.text();
+      quotesCache=text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l && !l.startsWith("#"));
+    }catch(_){ quotesCache=[]; }
+    return quotesCache;
+  }
+  async function openInspiration(){
+    const list=await loadQuotes();
+    const { body }=modal(h=>h.innerHTML=`<h3>✨ Inspiration</h3>`,{wide:true});
+    function show(){
+      body.innerHTML="";
+      if(!list.length){ const e=document.createElement("div"); e.className="td-empty"; e.style.padding="22px 0"; e.innerHTML="No sayings found yet. Add a <b>quotes.txt</b> file to the site — one saying per line — and they'll show up here."; body.appendChild(e); return; }
+      const q=list[Math.floor(Math.random()*list.length)];
+      const quote=document.createElement("div"); quote.className="inspire-quote"; quote.textContent=q; body.appendChild(quote);
+      const again=document.createElement("button"); again.className="btn btn-primary"; again.style.marginTop="18px"; again.textContent="Another one ✨"; again.onclick=show; body.appendChild(again);
+    }
+    show();
+  }
+
+  function openDirectory(){
+    const { body }=modal(h=>h.innerHTML=`<h3>People directory</h3><p>Your shared list of people. Add someone once here, then quickly add them to any board. Editing requires admin access on a board.</p>`,{wide:true});
+    (function draw(){
+      body.innerHTML="";
+      if(!state.directory.length){ const e=document.createElement("div"); e.className="td-empty"; e.style.padding="14px 0"; e.textContent="No one here yet. Add people below, or import everyone already on your boards."; body.appendChild(e); }
+      state.directory.forEach(d=>{
+        const row=document.createElement("div"); row.className="edit-row member-row";
+        row.innerHTML=`<input type="color" value="${d.color}">
+          <div class="mem-fields"><input type="text" class="mem-name" value="${escapeAttr(d.name)}" placeholder="Name"><input type="email" class="mem-email" value="${escapeAttr(d.email)}" readonly></div>
+          <button class="mem-invite" title="Email sign-in instructions">✉ Invite</button>
+          <button class="edit-del" title="Remove from directory">✕</button>`;
+        const col=row.querySelector('input[type=color]'); const nm=row.querySelector('.mem-name');
+        col.onchange=()=>{ d.color=col.value; upsertDirectory(d); };
+        nm.onchange=()=>{ d.name=nm.value.trim()||nameFromEmail(d.email); upsertDirectory(d); };
+        row.querySelector(".mem-invite").onclick=()=>inviteMember(null, {id:d.email,name:d.name});
+        row.querySelector(".edit-del").onclick=()=>{ if(confirm(`Remove ${d.name} from the directory?\n\n(They stay on any boards they're already a member of — this only removes them from the quick-add list.)`)){ state.directory=state.directory.filter(x=>x.email!==d.email); deleteDirectoryRow(d.email); draw(); } };
+        body.appendChild(row);
+      });
+      const add=document.createElement("button"); add.className="add-line"; add.textContent="＋ Add person";
+      add.onclick=()=>{ const email=(prompt("Person's email:")||"").trim().toLowerCase(); if(!email) return;
+        if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ alert("Enter a valid email."); return; }
+        if(dirHas(email)){ alert("That person is already in the directory."); return; }
+        const name=(prompt("Their name:", nameFromEmail(email))||nameFromEmail(email)).trim();
+        dirAdd({email,name,color:colorForEmail(email)}); draw();
+        if(confirm("Added. Email them sign-in instructions now?")) inviteMember(null,{id:email,name});
+      };
+      body.appendChild(add);
+      const imp=document.createElement("button"); imp.className="add-line"; imp.style.marginTop="6px"; imp.textContent="⤓ Import everyone already on my boards";
+      imp.onclick=()=>{ let n=0; accessibleBoards().forEach(b=>b.people.forEach(p=>{ if(!dirHas(p.id)){ dirAdd({email:p.id,name:p.name,color:p.color}); n++; } })); draw();
+        alert(n?`Added ${n} ${n===1?"person":"people"} to the directory.`:"Everyone on your boards is already in the directory."); };
+      body.appendChild(imp);
+    })();
+  }
+  function addNewPersonToBoard(b, redraw){
+    const email=(prompt("New person's email:")||"").trim().toLowerCase(); if(!email) return;
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ alert("Enter a valid email."); return; }
+    const name=(prompt("Their name:", nameFromEmail(email))||nameFromEmail(email)).trim();
+    const color=colorForEmail(email);
+    if(!dirHas(email)) dirAdd({email,name,color});
+    if(!b.people.some(p=>p.id.toLowerCase()===email)){ b.people.push({id:email,name,color,role:"editor"}); syncMembers(b); }
+    redraw&&redraw(); renderBody();
+    if(confirm(`Added ${email}. Email them sign-in instructions now?`)) inviteMember(b,{id:email,name,role:"editor"});
+  }
+
+  function openSettings(){
+    const b=board();
+    const {body}=modal(h=>h.innerHTML=`<h3>Board settings — ${escapeHtml(b.name)}</h3><p>Control who can see and work in this board. Members sign in with the email you list here.</p>`,{wide:true});
+    (function draw(){
+      body.innerHTML="";
+      const t=document.createElement("div"); t.className="pop-title"; t.style.padding="0 0 4px"; t.textContent="Members & access"; body.appendChild(t);
+      b.people.forEach(p=>{
+        const row=document.createElement("div"); row.className="edit-row member-row";
+        row.innerHTML=`
+          <input type="color" value="${p.color}">
+          <div class="mem-fields">
+            <input type="text" class="mem-name" value="${escapeAttr(p.name)}" placeholder="Name">
+            <input type="email" class="mem-email" value="${escapeAttr(p.id)}" placeholder="email@domain.com">
+          </div>
+          <select>${ROLES.map(r=>`<option value="${r}" ${p.role===r?"selected":""}>${cap(r)}</option>`).join("")}</select>
+          <button class="mem-invite" title="Email this person sign-in instructions">✉ Invite</button>
+          <button class="edit-del" title="Remove member">✕</button>`;
+        const col=row.querySelector('input[type=color]');
+        const nm=row.querySelector('.mem-name'); const em=row.querySelector('.mem-email'); const sel=row.querySelector("select");
+        row.querySelector(".mem-invite").onclick=()=>inviteMember(b,p);
+        col.onchange=()=>{ p.color=col.value; syncMembers(b); if(p.id===me.email)renderSidebar(); };
+        nm.onchange=()=>{ p.name=nm.value.trim()||nameFromEmail(p.id); syncMembers(b); renderBody(); if(p.id===me.email)renderSidebar(); };
+        em.onchange=()=>{
+          const v=em.value.trim().toLowerCase();
+          if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){ alert("Enter a valid email."); em.value=p.id; return; }
+          if(b.people.some(x=>x!==p && x.id.toLowerCase()===v)){ alert("That email is already a member."); em.value=p.id; return; }
+          const old=p.id;
+          // re-key any assignments from old id to new email
+          b.groups.forEach(g=>g.tasks.forEach(tk=>b.columns.forEach(c=>{ if(c.type==="people"&&Array.isArray(tk.values[c.id])) tk.values[c.id]=tk.values[c.id].map(id=>id===old?v:id); })));
+          p.id=v;
+          syncMembers(b); save(); draw(); renderBody();
+        };
+        sel.onchange=()=>{
+          if(p.role==="admin" && sel.value!=="admin" && b.people.filter(x=>x.role==="admin").length<=1){ alert("A board needs at least one admin."); sel.value="admin"; return; }
+          p.role=sel.value; syncMembers(b);
+          if(p.id===me.email) renderAll();
+        };
+        row.querySelector(".edit-del").onclick=()=>{
+          if(p.role==="admin" && b.people.filter(x=>x.role==="admin").length<=1){ alert("Add another admin before removing this one."); return; }
+          b.people=b.people.filter(x=>x.id!==p.id);
+          b.groups.forEach(g=>g.tasks.forEach(tk=>b.columns.forEach(c=>{ if(c.type==="people"&&Array.isArray(tk.values[c.id])) tk.values[c.id]=tk.values[c.id].filter(id=>id!==p.id); })));
+          syncMembers(b); save(); draw(); renderBody();
+        };
+        body.appendChild(row);
+      });
+      const add=document.createElement("button"); add.className="add-line"; add.textContent="＋ Add member";
+      add.onclick=()=>{
+        const avail=state.directory.filter(d=> !b.people.some(p=>p.id.toLowerCase()===d.email.toLowerCase()));
+        popover(add,(pop)=>{
+          pop.appendChild(title("Add from your people"));
+          if(!avail.length){ const e2=document.createElement("div"); e2.style.cssText="padding:6px 12px 8px;color:var(--ink-soft);font-size:12.5px;max-width:240px;line-height:1.4;"; e2.textContent="Everyone in your directory is already on this board. Add someone new below."; pop.appendChild(e2); }
+          avail.forEach(d=>{ const it=document.createElement("button"); it.className="pop-item"; it.style.alignItems="center";
+            it.innerHTML=`<span class="avatar" style="background:${d.color};margin:0 8px 0 0;width:24px;height:24px;border:none;font-size:10px;color:#fff;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex:0 0 auto;">${initials(d.name)}</span><span style="flex:1;line-height:1.3;text-align:left">${escapeHtml(d.name)}<br><span style="font-size:11px;color:var(--ink-soft)">${escapeHtml(d.email)}</span></span>`;
+            it.onclick=()=>{ b.people.push({id:d.email.toLowerCase(), name:d.name, color:d.color, role:"editor"}); syncMembers(b); closePop(); draw(); renderBody(); };
+            pop.appendChild(it);
+          });
+          pop.appendChild(sep());
+          pop.appendChild(mkItem("＋ Add someone new…",()=>{ closePop(); addNewPersonToBoard(b, draw); }));
+          pop.appendChild(mkItem("⚙ Manage directory…",()=>{ closePop(); openDirectory(); }));
+        });
+      };
+      body.appendChild(add);
+
+      const note=document.createElement("div"); note.className="note";
+      note.innerHTML=`<b>Roles:</b> Admins manage settings and members. Editors add and change tasks, groups, statuses and columns. Viewers see the board read-only. People not listed here can't open the board at all.<br><br>To invite someone, add their email and pick a role — next time they sign in with a magic link to that address, this board appears for them with exactly the access you set. Row Level Security enforces it on the server.`;
+      body.appendChild(note);
+    })();
+  }
+
+  function openOverdue(){
+    let scope="mine";
+    const {body,foot,sp}=modal(h=>h.innerHTML=`<h3>Overdue tasks</h3><p>Past their due date and not marked done, across boards you can access.</p>`,{wide:true,doneLabel:"Close"});
+    const seg=document.createElement("div"); seg.className="seg";
+    const bMine=document.createElement("button"); bMine.textContent="Assigned to me";
+    const bAll=document.createElement("button"); bAll.textContent="Everyone";
+    seg.appendChild(bMine); seg.appendChild(bAll);
+    foot.insertBefore(seg, sp);
+
+    function draw(){
+      bAll.classList.toggle("on",scope==="all"); bMine.classList.toggle("on",scope==="mine");
+      body.innerHTML="";
+      const items=[];
+      accessibleBoards().forEach(b=>b.groups.forEach(g=>g.tasks.forEach(t=>{
+        const due=taskOverdueDate(b,t); if(!due) return;
+        if(scope==="mine" && !taskAssignedTo(b,t,me.email)) return;
+        items.push({b,g,t,due});
+      })));
+      items.sort((x,y)=>new Date(x.due)-new Date(y.due));
+
+      if(items.length===0){
+        body.innerHTML=`<div class="od-empty"><div class="big">✅</div>${scope==="mine"?"You have nothing overdue.":"Nothing is overdue. Nice."}</div>`;
+        return;
+      }
+      items.forEach(({b,g,t,due})=>{
+        const d=new Date(due+"T00:00:00");
+        const item=document.createElement("div"); item.className="od-item";
+        const pcol=b.columns.find(c=>c.type==="people");
+        const ppl=(pcol?(t.values[pcol.id]||[]):[]).map(pid=>b.people.find(x=>x.id===pid)).filter(Boolean);
+        item.innerHTML=`
+          <div class="od-date"><div class="d">${d.getDate()}</div><div class="m">${d.toLocaleString('en',{month:'short'})}</div></div>
+          <div class="od-main"><div class="t">${escapeHtml(t.name)}</div><div class="ctx">${escapeHtml(b.name)} · ${escapeHtml(g.name)}</div></div>
+          <div class="od-people">${ppl.map(p=>`<span class="avatar" style="background:${p.color}" title="${escapeHtml(p.name)}">${initials(p.name)}</span>`).join("")}</div>`;
+        item.onclick=()=>{ state.activeBoardId=b.id; save(); document.querySelectorAll(".overlay").forEach(o=>o.remove()); renderAll(); };
+        body.appendChild(item);
+      });
+    }
+    bAll.onclick=()=>{ scope="all"; draw(); };
+    bMine.onclick=()=>{ scope="mine"; draw(); };
+    draw();
+  }
+
+  /* ---------- TASK DETAIL (comments, attachments, recurrence, activity) ---------- */
+  function openTask(b,g,t,focusName){
+    const editable=canEdit(b);
+    const head=modal(h=>h.innerHTML=`
+        <input id="tdName" class="td-title" value="${escapeAttr(t.name)}" placeholder="Task name" spellcheck="false" ${editable?"":"readonly"}>
+        <p>${escapeHtml(b.name)} · ${escapeHtml(g.name)}</p>`,{wide:true,doneLabel:"Close"});
+    const body=head.body;
+    body.style.padding="0";
+
+    // editable title
+    const nameEl=document.getElementById("tdName");
+    if(editable){
+      nameEl.onchange=()=>{ const old=t.name; t.name=nameEl.value.trim()||"Untitled task"; nameEl.value=t.name; if(old!==t.name) logActivity(t,`Renamed from “${old}” to “${t.name}”`); save(); renderBody(); };
+      nameEl.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); nameEl.blur(); } });
+      if(focusName){ setTimeout(()=>{ nameEl.focus(); nameEl.select(); }, 30); }
+    }
+
+    // tab strip
+    const tabs=document.createElement("div"); tabs.className="td-tabs";
+    const panes={};
+    ["Details","Comments","Files","Activity"].forEach((name,i)=>{
+      const tb=document.createElement("button"); tb.className="td-tab"+(i===0?" on":""); tb.textContent=name;
+      const pane=document.createElement("div"); pane.className="td-pane"; pane.style.display=i===0?"":"none";
+      tb.onclick=()=>{ tabs.querySelectorAll(".td-tab").forEach(x=>x.classList.remove("on")); tb.classList.add("on");
+        Object.values(panes).forEach(p=>p.style.display="none"); pane.style.display=""; };
+      tabs.appendChild(tb); panes[name]=pane;
+    });
+    body.appendChild(tabs);
+    const paneWrap=document.createElement("div"); paneWrap.className="td-body";
+    Object.values(panes).forEach(p=>paneWrap.appendChild(p)); body.appendChild(paneWrap);
+
+    /* ----- Details: quick fields + recurrence ----- */
+    (function(){
+      const p=panes["Details"]; p.innerHTML="";
+      const statusCol=b.columns.find(c=>c.type==="status");
+      const peopleCol=b.columns.find(c=>c.type==="people");
+      const dateCol=b.columns.find(c=>c.type==="date");
+
+      function field(label, node){ const f=document.createElement("div"); f.className="td-field"; const l=document.createElement("div"); l.className="td-label"; l.textContent=label; f.appendChild(l); f.appendChild(node); return f; }
+
+      // instructions / details (carried on duplicate and on each repeat)
+      const notes=document.createElement("textarea"); notes.className="td-input td-notes"; notes.rows=3;
+      notes.placeholder=editable?"Instructions or details that travel with this task…":"";
+      notes.value=t.notes||""; notes.readOnly=!editable; notes.spellcheck=false;
+      if(editable) notes.onchange=()=>{ t.notes=notes.value; save(); };
+      p.appendChild(field("Instructions / details", notes));
+
+      if(statusCol){
+        const st=b.statuses.find(s=>s.id===t.values[statusCol.id]);
+        const btn=document.createElement("button"); btn.className="status-pill"; btn.style.cssText=`min-height:36px;border-radius:8px;width:100%;background:${st?st.color:"#eceef3"};${st?"":"color:var(--ink-soft)"}`;
+        btn.textContent=st?st.label:"—"; btn.disabled=!editable;
+        if(editable) btn.onclick=()=>{ statusPicker(btn,b,g,t,statusCol); };
+        p.appendChild(field("Status", btn));
+      }
+      if(peopleCol){
+        const wrap=document.createElement("div"); wrap.style.cssText="display:flex;align-items:center;gap:6px;min-height:36px;cursor:"+(editable?"pointer":"default");
+        function drawPplLocal(){ wrap.innerHTML=""; const ids=t.values[peopleCol.id]||[];
+          if(!ids.length){ const e=document.createElement("span"); e.className="people-empty"; e.style.fontSize="14px"; e.textContent=editable?"＋ Assign":"Unassigned"; wrap.appendChild(e); }
+          ids.forEach(pid=>{ const pp=b.people.find(x=>x.id===pid); if(!pp)return; const av=document.createElement("span"); av.className="avatar"; av.style.background=pp.color; av.textContent=initials(pp.name); av.title=pp.name; wrap.appendChild(av); });
+        }
+        drawPplLocal();
+        if(editable) wrap.onclick=()=>peoplePickerLive(wrap,b,t,peopleCol,drawPplLocal);
+        p.appendChild(field("Owner", wrap));
+      }
+      if(dateCol){
+        const inp=document.createElement("input"); inp.type="date"; inp.value=t.values[dateCol.id]||""; inp.className="td-input"; inp.readOnly=!editable;
+        if(editable) inp.onchange=()=>{ const old=t.values[dateCol.id]||""; t.values[dateCol.id]=inp.value; if(old!==inp.value) logActivity(t,`${dateCol.name} → ${inp.value||"cleared"}`); save(); renderBody(); };
+        p.appendChild(field("Due date", inp));
+      }
+      // recurrence
+      const recWrap=document.createElement("div");
+      const sel=document.createElement("select"); sel.className="td-input";
+      RECUR_OPTS.forEach(([v,lbl])=>{ const o=document.createElement("option"); o.value=v; o.textContent=lbl; if((t.recurrence&&t.recurrence.every||"")===v) o.selected=true; sel.appendChild(o); });
+      sel.disabled=!editable;
+      recWrap.appendChild(sel);
+      const sub=document.createElement("div"); sub.style.cssText="display:flex;gap:8px;margin-top:8px;";
+      const ordSel=document.createElement("select"); ordSel.className="td-input"; ordSel.disabled=!editable;
+      WEEK_ORD.forEach(([v,lbl])=>{ const o=document.createElement("option"); o.value=v; o.textContent=lbl; ordSel.appendChild(o); });
+      const wdSel=document.createElement("select"); wdSel.className="td-input"; wdSel.disabled=!editable;
+      WEEKDAYS.forEach(([v,lbl])=>{ const o=document.createElement("option"); o.value=v; o.textContent=lbl; wdSel.appendChild(o); });
+      sub.appendChild(ordSel); sub.appendChild(wdSel); recWrap.appendChild(sub);
+      function syncSub(){
+        const on = sel.value==="month-weekday";
+        sub.style.display = on?"flex":"none";
+        if(on){ ordSel.value=String((t.recurrence&&t.recurrence.week)||"1"); wdSel.value=String((t.recurrence&&t.recurrence.weekday!=null)?t.recurrence.weekday:"1"); }
+      }
+      syncSub();
+      if(editable){
+        sel.onchange=()=>{
+          if(!sel.value) t.recurrence=null;
+          else if(sel.value==="month-weekday") t.recurrence={every:"month-weekday", week:"1", weekday:"1"};
+          else t.recurrence={every:sel.value};
+          syncSub();
+          logActivity(t, t.recurrence?`Set to repeat ${recurLabel(t.recurrence)}`:"Repeat turned off"); save(); renderBody();
+        };
+        ordSel.onchange=wdSel.onchange=()=>{
+          if(sel.value!=="month-weekday") return;
+          t.recurrence={every:"month-weekday", week:String(ordSel.value), weekday:String(wdSel.value)};
+          logActivity(t, `Set to repeat ${recurLabel(t.recurrence)}`); save(); renderBody();
+        };
+      }
+      const recField=field("Repeat", recWrap);
+      const hint=document.createElement("div"); hint.className="td-hint";
+      hint.textContent="When a repeating task is marked Done, the next occurrence is created automatically with a fresh due date.";
+      recField.appendChild(hint);
+      p.appendChild(recField);
+
+      if(editable){
+        const archWrap=document.createElement("div"); archWrap.style.cssText="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);";
+        const ab=document.createElement("button"); ab.className="btn btn-soft"; ab.textContent=t.archived?"↩ Unarchive task":"🗄 Archive task";
+        ab.onclick=()=>{ setArchived(b,g,t,!t.archived); head.close(); };
+        archWrap.appendChild(ab);
+        const note=document.createElement("div"); note.className="td-hint"; note.style.marginTop="7px";
+        note.textContent=t.archived?"This task is archived — hidden from the board but kept with its full history.":"Archiving hides this task from the board but keeps its full history and activity.";
+        archWrap.appendChild(note);
+        p.appendChild(archWrap);
+      }
+    })();
+
+    /* ----- Comments ----- */
+    function drawComments(){
+      const p=panes["Comments"]; p.innerHTML="";
+      const list=document.createElement("div"); list.className="cm-list";
+      if(!t.comments.length){ const e=document.createElement("div"); e.className="td-empty"; e.textContent="No comments yet."; list.appendChild(e); }
+      t.comments.forEach(c=>{ const row=document.createElement("div"); row.className="cm";
+        const who=b.people.find(x=>x.name.toLowerCase()===String(c.who).toLowerCase());
+        row.innerHTML=`<span class="avatar" style="background:${who?who.color:'#9aadbd'};margin:0;flex:0 0 auto">${initials(c.who)}</span>
+          <div class="cm-main"><div class="cm-head"><b>${escapeHtml(c.who)}</b> <span>${fmtWhen(c.when)}</span></div><div class="cm-text">${escapeHtml(c.text)}</div></div>`;
+        list.appendChild(row); });
+      p.appendChild(list);
+      if(editable){
+        const box=document.createElement("div"); box.className="cm-box";
+        const ta=document.createElement("textarea"); ta.placeholder="Write a comment…"; ta.rows=2;
+        const send=document.createElement("button"); send.className="btn btn-primary"; send.textContent="Comment";
+        send.onclick=()=>{ const v=ta.value.trim(); if(!v) return; t.comments.push({id:uid("c"),who:meName(),when:new Date().toISOString(),text:v}); logActivity(t,"Added a comment"); save(); renderBody(); drawComments(); };
+        box.appendChild(ta); box.appendChild(send); p.appendChild(box);
+      }
+    }
+    drawComments();
+
+    /* ----- Files / attachments (Supabase Storage) ----- */
+    async function signedUrl(path){
+      try{ const { data } = await sb.storage.from("attachments").createSignedUrl(path, 3600); return data?data.signedUrl:null; }catch(_){ return null; }
+    }
+    function drawFiles(){
+      const p=panes["Files"]; p.innerHTML="";
+      const grid=document.createElement("div"); grid.className="att-grid";
+      if(!t.attachments.length){ const e=document.createElement("div"); e.className="td-empty"; e.textContent="No files attached."; grid.appendChild(e); }
+      t.attachments.forEach(a=>{ const card=document.createElement("div"); card.className="att";
+        const isImg=/^image\//.test(a.type);
+        card.innerHTML = `${isImg?`<img alt="" data-path="${escapeAttr(a.path)}">`:`<div class="att-ic">${/pdf/i.test(a.type)?"📄":"📎"}</div>`}
+          <div class="att-meta"><div class="att-name" title="${escapeAttr(a.name)}">${escapeHtml(a.name)}</div><div class="att-sub">${fmtSize(a.size)} · ${escapeHtml(a.who)}</div></div>`;
+        const dl=document.createElement("button"); dl.className="att-act"; dl.textContent="Download";
+        dl.onclick=async()=>{ const u=await signedUrl(a.path); if(u) window.open(u,"_blank"); };
+        card.appendChild(dl);
+        if(editable){ const del=document.createElement("button"); del.className="att-act danger"; del.textContent="Remove";
+          del.onclick=async()=>{ try{ await sb.storage.from("attachments").remove([a.path]); }catch(_){}
+            t.attachments=t.attachments.filter(x=>x.id!==a.id); logActivity(t,`Removed file ${a.name}`); save(); renderBody(); drawFiles(); }; card.appendChild(del); }
+        grid.appendChild(card);
+        if(isImg){ signedUrl(a.path).then(u=>{ const img=card.querySelector("img"); if(img&&u) img.src=u; }); }
+      });
+      p.appendChild(grid);
+      if(editable){
+        const up=document.createElement("label"); up.className="att-upload"; up.innerHTML=`＋ Add a file <span>Click to browse, or drag a file here — image, PDF, or document</span>`;
+        const fi=document.createElement("input"); fi.type="file"; fi.hidden=true; fi.accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt";
+        async function uploadFile(f){
+          if(!f) return;
+          if(f.size>25*1024*1024){ alert("Files are capped at 25 MB."); return; }
+          up.innerHTML="Uploading…";
+          const path=`${b.id}/${t.id}/${uid("f")}-${f.name.replace(/[^\w.\-]+/g,"_")}`;
+          const { error } = await sb.storage.from("attachments").upload(path, f, { contentType:f.type||"application/octet-stream", upsert:false });
+          if(error){ alert("Upload failed: "+error.message); drawFiles(); return; }
+          t.attachments.push({id:uid("f"), name:f.name, type:f.type||"application/octet-stream", size:f.size, path, who:meName(), when:new Date().toISOString()});
+          logActivity(t,`Attached ${f.name}`); save(); renderBody(); drawFiles();
+        }
+        fi.onchange=()=>{ uploadFile(fi.files[0]); fi.value=""; };
+        up.addEventListener("dragover",(e)=>{ e.preventDefault(); e.stopPropagation(); up.classList.add("drag"); });
+        up.addEventListener("dragleave",(e)=>{ e.preventDefault(); up.classList.remove("drag"); });
+        up.addEventListener("drop",(e)=>{ e.preventDefault(); e.stopPropagation(); up.classList.remove("drag"); const f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) uploadFile(f); });
+        up.appendChild(fi); p.appendChild(up);
+      }
+    }
+    drawFiles();
+
+    /* ----- Activity / audit trail ----- */
+    (function(){
+      const p=panes["Activity"]; p.innerHTML="";
+      const list=document.createElement("div"); list.className="act-list";
+      const items=[...(t.activity||[])].sort((a,c)=>new Date(c.when)-new Date(a.when));
+      if(!items.length){ const e=document.createElement("div"); e.className="td-empty"; e.textContent="No activity yet."; list.appendChild(e); }
+      items.forEach(a=>{ const row=document.createElement("div"); row.className="act";
+        row.innerHTML=`<span class="act-dot"></span><div><div class="act-text"><b>${escapeHtml(a.who)}</b> ${escapeHtml(a.text)}</div><div class="act-when">${fmtWhen(a.when)}</div></div>`;
+        list.appendChild(row); });
+      p.appendChild(list);
+    })();
+  }
+  // live people picker that refreshes a callback instead of full re-render
+  function peoplePickerLive(anchor,b,t,col,after){
+    popover(anchor,(pop)=>{ pop.appendChild(title("Assign people"));
+      const ids=t.values[col.id]||(t.values[col.id]=[]);
+      b.people.forEach(p=>{ const on=ids.includes(p.id); const it=document.createElement("button"); it.className="pop-item";
+        it.innerHTML=`<span class="avatar" style="background:${p.color};margin:0;width:22px;height:22px;border:none;font-size:10px">${initials(p.name)}</span><span style="flex:1">${escapeHtml(p.name)}</span>${on?'<span style="color:var(--accent)">✓</span>':''}`;
+        it.onclick=()=>{ if(on){ t.values[col.id]=ids.filter(x=>x!==p.id); logActivity(t,`Unassigned ${p.name}`);} else { ids.push(p.id); logActivity(t,`Assigned ${p.name}`);} save(); after&&after(); renderBody(); peoplePickerLive(anchor,b,t,col,after); };
+        pop.appendChild(it); });
+    });
+  }
+
+  /* ---------- TEMPLATES ---------- */
+  function groupToTemplate(b,g,name){
+    const statusLabel = id => (b.statuses.find(s=>s.id===id)||{}).label;
+    const tasks = g.tasks.map(t=>{
+      const fields={};
+      b.columns.forEach(c=>{
+        const v=t.values[c.id];
+        if(c.type==="status") fields[c.name]={type:"status", label:statusLabel(v)};
+        else if(c.type==="people") fields[c.name]={type:"people", names:(v||[]).map(pid=>(b.people.find(p=>p.id===pid)||{}).name).filter(Boolean)};
+        else fields[c.name]={type:c.type, value:v||""};
+      });
+      return {name:t.name, notes:t.notes||"", recurrence:t.recurrence?{...t.recurrence}:null, fields};
+    });
+    return {id:uid("tpl"), name:name||g.name, color:g.color, tasks, boardId:b.id};
+  }
+  function applyTemplate(b,tpl){
+    const g={id:uid("g"), name:tpl.name, color:tpl.color||PALETTE[b.groups.length%PALETTE.length], collapsed:false, tasks:[]};
+    tpl.tasks.forEach(tt=>{
+      const nt={id:uid("t"), name:tt.name, notes:tt.notes||"", values:{}, comments:[], attachments:[], activity:[], recurrence:tt.recurrence?{...tt.recurrence}:null};
+      b.columns.forEach(c=>{
+        const f=tt.fields ? tt.fields[c.name] : null;
+        if(c.type==="people"){ let ids=[]; if(f&&f.type==="people"){ ids=(f.names||[]).map(n=>(b.people.find(p=>p.name.toLowerCase()===String(n).toLowerCase())||{}).id).filter(Boolean); } nt.values[c.id]=ids; }
+        else if(c.type==="status"){ let id=notStartedStatusId(b); if(f&&f.type==="status"&&f.label){ const m=b.statuses.find(s=>s.label.toLowerCase()===String(f.label).toLowerCase()); if(m) id=m.id; } nt.values[c.id]=id; }
+        else { nt.values[c.id]= f ? (f.value||"") : ""; }
+      });
+      logActivity(nt, `Created from template “${tpl.name}”`);
+      g.tasks.push(nt);
+    });
+    b.groups.push(g); save(); renderBody();
+  }
+  function openTemplates(){
+    const b=board();
+    const {body}=modal(h=>h.innerHTML=`<h3>Templates · ${escapeHtml(b.name)}</h3><p>Reusable groups for this board. Save any group as a template from its ⋯ menu, then drop a fresh copy back into this board.</p>`,{wide:true});
+    (function draw(){
+      body.innerHTML="";
+      const list=state.templates.filter(tpl=> !tpl.boardId || tpl.boardId===b.id);
+      if(!list.length){ const e=document.createElement("div"); e.className="td-empty"; e.style.padding="20px 0"; e.textContent="No templates for this board yet. Open a group's ⋯ menu and choose “Save as template”."; body.appendChild(e); return; }
+      list.forEach(tpl=>{
+        const mine = !tpl.owner || tpl.owner===me.id;
+        const legacy = !tpl.boardId;
+        const row=document.createElement("div"); row.className="tpl-row";
+        row.innerHTML=`<span class="tpl-dot" style="background:${tpl.color||'#5b5bd6'}"></span>
+          <div class="tpl-main"><div class="tpl-name">${escapeHtml(tpl.name)}</div><div class="tpl-sub">${tpl.tasks.length} ${tpl.tasks.length===1?"task":"tasks"}${mine?"":" · shared"}${legacy?" · any board":""}</div></div>`;
+        const use=document.createElement("button"); use.className="btn btn-primary"; use.style.padding="7px 12px"; use.textContent="Add to board";
+        use.onclick=()=>{ applyTemplate(b,tpl); use.textContent="Added ✓"; setTimeout(()=>use.textContent="Add to board",1200); };
+        row.appendChild(use);
+        if(mine){
+          const del=document.createElement("button"); del.className="edit-del"; del.textContent="✕"; del.title="Delete template";
+          del.onclick=()=>{ if(confirm(`Delete template “${tpl.name}”?`)){ state.templates=state.templates.filter(x=>x.id!==tpl.id); deleteTemplateRow(tpl.id); draw(); } };
+          row.appendChild(del);
+        }
+        body.appendChild(row);
+      });
+    })();
+  }
+
+  /* ---------- WORKLOAD ---------- */
+  function openWorkload(){
+    let scope="board";
+    const {body,foot,sp}=modal(h=>h.innerHTML=`<h3>Workload</h3><p>Tasks per person and where they stand.</p>`,{wide:true,doneLabel:"Close"});
+    const seg=document.createElement("div"); seg.className="seg";
+    const bB=document.createElement("button"); bB.textContent="This board";
+    const bA=document.createElement("button"); bA.textContent="All boards";
+    seg.appendChild(bB); seg.appendChild(bA); foot.insertBefore(seg,sp);
+
+    function draw(){
+      bB.classList.toggle("on",scope==="board"); bA.classList.toggle("on",scope==="all");
+      body.innerHTML="";
+      const boards = scope==="board" ? [board()] : accessibleBoards();
+      // statusLabel -> color (first seen)
+      const statusColor={};
+      boards.forEach(b=>b.statuses.forEach(s=>{ if(!statusColor[s.label]) statusColor[s.label]=s.color; }));
+      // person name -> {color, total, byStatus:{label:n}, overdue}
+      const map=new Map();
+      function ensure(name,color){ const k=name.toLowerCase(); if(!map.has(k)) map.set(k,{name,color,total:0,byStatus:{},overdue:0}); return map.get(k); }
+      let unassigned=0;
+      boards.forEach(b=>{
+        const sc=b.columns.find(c=>c.type==="status"); const pcols=b.columns.filter(c=>c.type==="people");
+        b.groups.forEach(g=>g.tasks.forEach(t=>{
+          if(t.archived) return;
+          const lbl=(b.statuses.find(s=>s.id===(sc?t.values[sc.id]:null))||{}).label||"No status";
+          const od=!!taskOverdueDate(b,t);
+          const ids=[...new Set(pcols.flatMap(c=>t.values[c.id]||[]))];
+          if(!ids.length){ unassigned++; return; }
+          ids.forEach(pid=>{ const pp=b.people.find(x=>x.id===pid); if(!pp) return; const rec=ensure(pp.name,pp.color); rec.total++; rec.byStatus[lbl]=(rec.byStatus[lbl]||0)+1; if(od) rec.overdue++; });
+        }));
+      });
+      const rows=[...map.values()].sort((a,b)=>b.total-a.total);
+      if(!rows.length){ const e=document.createElement("div"); e.className="td-empty"; e.style.padding="24px 0"; e.textContent="No assigned tasks yet."; body.appendChild(e); }
+      rows.forEach(r=>{
+        const card=document.createElement("div"); card.className="wl";
+        const labels=Object.keys(r.byStatus);
+        const bar=labels.map(l=>`<span style="flex:${r.byStatus[l]};background:${statusColor[l]||'#c4c4c4'}" title="${escapeHtml(l)}: ${r.byStatus[l]}"></span>`).join("");
+        const chips=labels.map(l=>`<span class="wl-chip"><span class="wl-sw" style="background:${statusColor[l]||'#c4c4c4'}"></span>${escapeHtml(l)} ${r.byStatus[l]}</span>`).join("");
+        card.innerHTML=`
+          <div class="wl-head"><span class="avatar" style="background:${r.color};margin:0">${initials(r.name)}</span>
+            <div class="wl-name">${escapeHtml(r.name)}</div>
+            <div class="wl-total">${r.total} ${r.total===1?"task":"tasks"}${r.overdue?` · <span style="color:var(--danger);font-weight:700">${r.overdue} overdue</span>`:""}</div></div>
+          <div class="wl-bar">${bar}</div>
+          <div class="wl-chips">${chips}</div>`;
+        body.appendChild(card);
+      });
+      if(unassigned){ const u=document.createElement("div"); u.className="wl-unassigned"; u.textContent=`${unassigned} unassigned ${unassigned===1?"task":"tasks"}`; body.appendChild(u); }
+    }
+    bB.onclick=()=>{ scope="board"; draw(); };
+    bA.onclick=()=>{ scope="all"; draw(); };
+    draw();
+  }
+
+  function fmtSize(n){ if(n<1024) return n+" B"; if(n<1024*1024) return (n/1024).toFixed(0)+" KB"; return (n/1024/1024).toFixed(1)+" MB"; }
+
+  function mkItem(label,onClick){ const b=document.createElement("button"); b.className="pop-item"; b.textContent=label; b.onclick=onClick; return b; }
+  function sep(){ const s=document.createElement("div"); s.className="pop-sep"; return s; }
+  function title(txt){ const t=document.createElement("div"); t.className="pop-title"; t.textContent=txt; return t; }
+  function initials(n){ return n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase(); }
+  function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function escapeAttr(s){ return escapeHtml(s); }
+
+  document.getElementById("addBoard").onclick=async()=>{
+    const nb={ id:uid("b"), name:"New board", description:"",
+      people:[{id:me.email, name:me.name, color:me.color, role:"admin"}],
+      statuses:STATUS_DEFAULTS.map(s=>({...s})),
+      columns:[{id:"owner",name:"Owner",type:"people"},{id:"status",name:"Status",type:"status"},{id:"due",name:"Due date",type:"date"}],
+      groups:[{id:uid("g"),name:"New group",color:PALETTE[1],collapsed:false,tasks:[]}] };
+    state.boards.push(nb); state.activeBoardId=nb.id; renderAll();
+    await pushBoard(nb);     // inserts the board row (a DB trigger adds you as admin)
+    await syncMembers(nb);   // backfill your name/color/role
+  };
+  document.getElementById("exportBtn").onclick=()=>{
+    const blob=new Blob([JSON.stringify({boards:state.boards,templates:state.templates},null,2)],{type:"application/json"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="cousins-track-backup.json"; a.click(); URL.revokeObjectURL(a.href);
+  };
+  document.getElementById("signOutBtn").onclick=async()=>{ if(sb) await sb.auth.signOut(); location.reload(); };
+  document.getElementById("peopleBtn").onclick=openDirectory;
+  document.getElementById("inspireBtn").onclick=openInspiration;
+
+  /* ---- template persistence ---- */
+  async function pushTemplate(tpl){ if(!sb) return; const { error } = await sb.from("templates").upsert({ id:tpl.id, name:tpl.name, data:{color:tpl.color, tasks:tpl.tasks, boardId:tpl.boardId} }, { onConflict:"id" }); if(error) console.warn("template:", error.message); }
+  async function upsertDirectory(person){ if(!sb) return; const { error } = await sb.from("directory").upsert({ email:person.email.toLowerCase(), name:person.name, color:person.color }, { onConflict:"email" }); if(error) console.warn("directory:", error.message); }
+  async function deleteDirectoryRow(email){ if(!sb) return; await sb.from("directory").delete().eq("email", email.toLowerCase()); }
+  function dirHas(email){ return state.directory.some(d=>d.email.toLowerCase()===String(email).toLowerCase()); }
+  function dirAdd(person){ if(!dirHas(person.email)) state.directory.push(person); state.directory.sort((a,b)=>a.name.localeCompare(b.name)); upsertDirectory(person); }
+  async function deleteTemplateRow(id){ if(!sb) return; await sb.from("templates").delete().eq("id", id); }
+
+  /* ---- delete board (also drops its rows) ---- */
+  async function deleteBoardRow(id){ if(!sb) return; await sb.from("board_members").delete().eq("board_id", id); await sb.from("boards").delete().eq("id", id); }
+
+  function renderAll(){ closePop(); ensureAccessible(); renderSidebar(); renderMain(); }
+
+  /* ============================ AUTH ============================ */
+  async function loadAll(){
+    state.boards=[]; state.templates=[];
+    const { data:boards, error } = await sb.from("boards").select("id,name,data,owner").order("name");
+    if(error){ console.warn("load boards:", error.message); }
+    const ids=(boards||[]).map(r=>r.id);
+    const membersByBoard={};
+    if(ids.length){
+      const { data:mem } = await sb.from("board_members").select("board_id,email,name,color,role").in("board_id", ids);
+      (mem||[]).forEach(m=>{ (membersByBoard[m.board_id]=membersByBoard[m.board_id]||[]).push({ id:m.email, name:m.name||nameFromEmail(m.email), color:m.color||colorForEmail(m.email), role:ROLES.includes(m.role)?m.role:"editor" }); });
+    }
+    state.boards=(boards||[]).map(r=>{
+      const b=Object.assign({}, r.data||{}, { id:r.id, name:r.name, owner:r.owner });
+      b.people=membersByBoard[r.id]||[];
+      b.statuses=b.statuses||STATUS_DEFAULTS.map(s=>({...s}));
+      b.columns=b.columns||[{id:"owner",name:"Owner",type:"people"},{id:"status",name:"Status",type:"status"},{id:"due",name:"Due date",type:"date"}];
+      b.groups=b.groups||[];
+      b.groups.forEach(g=>(g.tasks||[]).forEach(t=>{ t.comments=t.comments||[]; t.attachments=t.attachments||[]; t.activity=t.activity||[]; if(t.recurrence===undefined)t.recurrence=null; if(t.archived===undefined)t.archived=false; }));
+      return b;
+    });
+    const { data:tpls } = await sb.from("templates").select("id,name,data,owner");
+    state.templates=(tpls||[]).map(r=>({ id:r.id, name:r.name, color:(r.data||{}).color, tasks:(r.data||{}).tasks||[], boardId:(r.data||{}).boardId, owner:r.owner }));
+    const { data:dir } = await sb.from("directory").select("email,name,color");
+    state.directory=(dir||[]).map(d=>({ email:String(d.email).toLowerCase(), name:d.name||nameFromEmail(d.email), color:d.color||colorForEmail(d.email) }))
+      .sort((a,b)=>a.name.localeCompare(b.name));
+    ensureAccessible();
+  }
+
+  async function enter(session){
+    me.id=session.user.id;
+    me.email=(session.user.email||"").toLowerCase();
+    me.name=nameFromEmail(me.email);
+    me.color=colorForEmail(me.email);
+    loadCollapsed();
+    document.getElementById("loginScreen").style.display="none";
+    document.getElementById("appShell").style.display="flex";
+    await loadAll();
+    renderAll();
+    subscribeRealtime();
+  }
+
+  /* ===================== REALTIME ======================
+     Listen for changes other people make and merge them in
+     without disturbing what you're currently typing. RLS means
+     you only receive events for boards you're a member of. */
+  let rtChannel=null, pendingRerender=false;
+  function subscribeRealtime(){
+    if(!sb) return;
+    if(rtChannel){ sb.removeChannel(rtChannel); rtChannel=null; }
+    rtChannel = sb.channel("cousins-track-rt")
+      .on("postgres_changes", { event:"*", schema:"public", table:"boards" }, onBoardChange)
+      .on("postgres_changes", { event:"*", schema:"public", table:"board_members" }, onMemberChange)
+      .subscribe();
+  }
+  function softRerender(changedId){
+    renderSidebar();
+    if(changedId && changedId!==state.activeBoardId) return; // a board I'm not looking at changed
+    const ae=document.activeElement;
+    const editing = ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName);
+    if(editing){ pendingRerender=true; return; } // don't yank focus mid-edit; flush on blur
+    renderMain();
+  }
+  document.addEventListener("focusout", ()=>{
+    if(!pendingRerender) return;
+    setTimeout(()=>{ const ae=document.activeElement; if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return; pendingRerender=false; renderMain(); }, 60);
+  });
+  function applyRemoteBoard(b, row){
+    const people=b.people;                 // membership is tracked separately
+    const d=row.data||{};
+    b.name=row.name; b.description=d.description;
+    b.statuses=d.statuses||b.statuses;
+    b.columns=d.columns||b.columns;
+    b.groups=d.groups||[];
+    b.groups.forEach(g=>(g.tasks||[]).forEach(t=>{ t.comments=t.comments||[]; t.attachments=t.attachments||[]; t.activity=t.activity||[]; if(t.recurrence===undefined)t.recurrence=null; if(t.archived===undefined)t.archived=false; }));
+    b.people=people; b.__rev=d.__rev;
+  }
+  function onBoardChange(payload){
+    const ev=payload.eventType;
+    if(ev==="DELETE"){
+      const id=payload.old && payload.old.id; if(!id) return;
+      if(state.boards.some(b=>b.id===id)){ state.boards=state.boards.filter(b=>b.id!==id); ensureAccessible(); renderAll(); }
+      return;
+    }
+    const row=payload.new; if(!row) return;
+    const b=state.boards.find(x=>x.id===row.id);
+    if(!b) return; // not a board I currently hold (or my own brand-new board echo)
+    if(row.data && row.data.__rev && recentRevs.includes(row.data.__rev)) return; // my own write echoed back
+    applyRemoteBoard(b, row);
+    softRerender(row.id);
+  }
+  async function refreshMembers(b){
+    const { data:mem } = await sb.from("board_members").select("email,name,color,role").eq("board_id", b.id);
+    b.people=(mem||[]).map(m=>({ id:m.email, name:m.name||nameFromEmail(m.email), color:m.color||colorForEmail(m.email), role:ROLES.includes(m.role)?m.role:"editor" }));
+  }
+  function onMemberChange(payload){
+    const rec=payload.new||payload.old; if(!rec) return;
+    const affectsMe=(rec.email||"").toLowerCase()===me.email;
+    if(affectsMe){ // I was added/removed/changed → safest to reload my full board set
+      loadAll().then(()=>renderAll());
+      return;
+    }
+    const b=state.boards.find(x=>x.id===rec.board_id);
+    if(b) refreshMembers(b).then(()=>softRerender(rec.board_id));
+  }
+  /* =================== end realtime =================== */
+
+  async function sendLink(){
+    const email=document.getElementById("loginEmail").value.trim().toLowerCase();
+    const msg=document.getElementById("loginMsg");
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.textContent="Enter a valid email address."; msg.className="login-msg err"; return; }
+    msg.className="login-msg"; msg.textContent="Sending…";
+    const { error } = await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: location.href.split('#')[0] } });
+    if(error){ msg.textContent=error.message; msg.className="login-msg err"; }
+    else { msg.textContent="Check your inbox — we sent a magic link to "+email+". Open it on this device to finish signing in."; }
+  }
+  async function boot(){
+    if(!sb){ document.getElementById("configWarn").style.display="block"; return; }
+    document.getElementById("loginBtn").onclick=sendLink;
+    document.getElementById("loginEmail").addEventListener("keydown",e=>{ if(e.key==="Enter") sendLink(); });
+    document.getElementById("googleBtn").onclick=async()=>{
+      const { error } = await sb.auth.signInWithOAuth({ provider:"google", options:{ redirectTo: location.href.split('#')[0] } });
+      if(error){ const m=document.getElementById("loginMsg"); m.textContent=error.message; m.className="login-msg err"; }
+    };
+    sb.auth.onAuthStateChange((_evt, session)=>{ if(session && document.getElementById("appShell").style.display==="none") enter(session); });
+    const { data:{ session } } = await sb.auth.getSession();
+    if(session) enter(session);
+  }
+  boot();
+  if("serviceWorker" in navigator){ window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }); }
+  </script>
+</body>
+</html>
